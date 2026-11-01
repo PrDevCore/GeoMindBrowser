@@ -5,8 +5,10 @@ Step 5's Linux packet-capture half and the AC2 proof are still missing. Policy h
 live tunnel status, and locale header rules landed 2026-10-30 (ADR-0012, ADR-0013,
 ADR-0014). The independent security review returned **FAIL**; R1 (same-user process takes
 over the stale loopback port) was closed as an explicit Phase 1 scope decision (ADR-0015).
-R2, R3, and R5-R8 were fixed 2026-11-01 with tests; R4 (timezone/geolocation parity) is an
-open design question, so Phase 1 is not complete. Step 6 needs llama.cpp and model approval.
+R2, R3, and R5-R8 were fixed 2026-11-01 with tests; R4 was decided the same day (ADR-0019:
+geolocation blocked on routed origins, timezone/language parity accepted for Phase 1).
+Phase 1 is still not complete: the Linux capture half of step 5 is missing. Step 6 needs
+llama.cpp and model approval.
 Verification is recorded in `project-state/progress.md`.
 
 Decisions taken 2026-10-30: Go for the companion, llama.cpp for local inference. See
@@ -309,7 +311,7 @@ Status: done 2026-10-30 (see project-state/progress.md).
 
 Status: implemented 2026-10-30; Linux netns DNS/WebRTC/QUIC/IPv6 capture and the
 restart/tab-restore run are still missing. Review findings R2, R3, and R5-R8 were fixed
-2026-11-01; R4 remains open and R1 is scoped out (ADR-0015). See
+2026-11-01; R4 was decided 2026-11-01 (ADR-0019) and R1 is scoped out (ADR-0015). See
 project-state/progress.md.
 
 - Files: `extension/src/background/**`, `extension/src/lib/**`, `extension/src/options/**`,
@@ -390,7 +392,7 @@ Linux VM; it cannot be run locally as configured today.
 | wireguard-go audit status unclear | High | Confirm audit/version before Step 4; document in decisions |
 | Chrome QUIC or preconnect bypasses the proxy | High | Capture tests; disable QUIC where supported; treat as a release blocker |
 | Native messaging install differs on Windows/macOS | Medium | Installer scripts per OS; CI covers Linux; manual smoke on Windows |
-| Timezone invariant unmet | Medium | Open decision; do not claim timezone matching |
+| Timezone invariant unmet | Medium | Accepted for Phase 1 (ADR-0019); geolocation blocked on routed origins; do not claim timezone matching |
 | MV3 service worker suspension during streaming | Medium | Port-based connection keeps the worker alive; reconnect and resume tests |
 | Playwright extension loading changes between versions | Medium | Pin Playwright and Chromium; if it breaks, fall back to system Chrome with a policy file |
 | Model is large and slow offline | Low | Small quantized model default; model path and hash from env |
@@ -423,12 +425,10 @@ implementation. The user approved the dependency on 2026-10-30 with that gap rec
 
 ## 12. Open questions (decision needed)
 
-1. **Timezone.** The networking invariant requires timezone to match the exit. Stock
-   Chromium has no supported per-site timezone override without the debugger API (shown as
-   "being debugged") or an OS setting (a system change requiring approval). Options:
-   (a) accept the gap for Phase 1 and document it, (b) use the debugger API and accept the
-   infobar, (c) set the OS timezone via the companion with explicit consent. Recommendation:
-   (a) for Phase 1, revisit before any claim of full locale matching.
+1. **Timezone — decided 2026-11-01 (ADR-0019).** Option (a): accept the gap for Phase 1,
+   block geolocation on routed origins, and treat timezone/language parity as a Mode B
+   property. The debugger route (b) and OS timezone changes (c) stay rejected. Revisit only
+   before any claim of full locale matching.
 2. **OS firewall kill switch.** Proxy-level fail-closed covers browser traffic only.
    Non-browser traffic still uses the real IP. Add a firewall kill switch in Phase 1, or
    defer?

@@ -21,6 +21,7 @@ describe("MV3 manifest", () => {
       "storage",
       "proxy",
       "privacy",
+      "contentSettings",
       "declarativeNetRequestWithHostAccess",
     ]);
     expect(manifest.host_permissions).toBeUndefined();

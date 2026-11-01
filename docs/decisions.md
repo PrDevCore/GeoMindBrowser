@@ -424,3 +424,45 @@ Status values: proposed, accepted, superseded.
   outside contributions begin. Apache-2.0 does not grant trademark rights, so the GeoMind name
   and icon remain reserved. The copyright holder is written as "Pr Dev Core Tech", the name
   the user supplied on 2026-11-01; update `NOTICE` (not the license text) if that changes.
+
+## ADR-0019: Timezone and geolocation parity (review finding R4)
+
+- Date: 2026-11-01
+- Status: accepted (user decision, 2026-11-01: "proceed with the recommended").
+- Context: The security review's R4 finding observed that the invariant "timezone, locale,
+  Accept-Language, and geolocation match the exit country" is unmet. `Accept-Language` is
+  already matched per origin with explicit consent (ADR-0014), and ADR-0006 accepted the
+  timezone gap for Phase 1, but geolocation was neither matched nor documented. Chrome can
+  answer a location request from the OS provider (Wi-Fi and network beacons), which does not
+  pass through the proxy, so a routed tab could read the real coordinates while the page
+  itself arrives from the exit.
+- Decision:
+  - Geolocation fails closed on routed origins. The extension sets
+    `chrome.contentSettings.location` to `block` for every routed policy pattern (exact
+    hosts and wildcards), when the policy loads and whenever it changes.
+  - Blocks are monotonic: a policy edit never lifts one, so a reload cannot open a window.
+    Chrome drops rules attributed to this extension when it is disabled or removed.
+  - The manifest gains the `contentSettings` permission, used only for `location`. The
+    options page shows how many routed sites are blocked, next to the WebRTC status.
+  - Timezone and `navigator.language`/`Intl` stay host-derived. MV3 has no API to change
+    them; only `chrome.debugger` with CDP `Emulation.setTimezoneOverride` could, which needs
+    a debugger attached to every routed tab, shows a debugger banner, and is itself a
+    distinguishing signal. Rejected for Phase 1.
+  - Phase 1 therefore does not promise timezone or language parity. A routed site can still
+    compare its timezone and `Intl` data with the exit country. Full parity belongs to Mode B,
+    where the session container runs in the exit's timezone and locale and has no real
+    location to read.
+- Why: Blocking removes the only precise, high-value signal (coordinates) that the proxy
+  cannot cover, and does it without faking values. Faking timezone or locale partially would
+  add a detectable inconsistency on top of the existing mismatch, and the networking rule
+  "normalize fingerprints, do not randomize" rules out layering overrides that only some
+  surfaces honour.
+- Consequences: Sites that ask for location on a routed tab receive a denial instead of a
+  mismatched position; this is visible in the options page. Blocks persist until the
+  extension is disabled or removed, including for hosts removed from the policy, which is
+  conservative rather than convenient. `docs/threat-model.md` was updated on 2026-11-01
+  (T16 and section 8.1) with the user's approval of that wording change.
+- Verification: unit tests for pattern planning and per-pattern failure handling
+  (`extension/test/unit/geolocation.test.ts`), manifest permission assertion, and a Playwright
+  test that reads the setting back in Chromium (`block` for the routed host, `ask` for a
+  direct host) plus the options-page status line.

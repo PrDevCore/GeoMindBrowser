@@ -18,8 +18,10 @@ and a high proxy-drift detection gap. R1 is now an explicit Phase 1 scope decisi
 (ADR-0015, 2026-10-31): the OS user boundary is trusted and same-user processes are out of
 scope for routing integrity. On 2026-11-01 R2, R3, and R5-R8 were fixed with tests (PAC
 read-back and drift repair, visible WebRTC failures, race fixes, atomic `policy.get`,
-options grant cleanup). R4 (timezone/geolocation parity) remains an open design question, so
-Phase 1 is not complete.
+options grant cleanup). R4 was decided on 2026-11-01 (ADR-0019): geolocation is blocked on
+every routed origin through `contentSettings.location`, and timezone/`Intl`/language parity
+is documented as out of Phase 1 scope. Phase 1 is still not complete: AC2 (Linux capture) and
+Step 6 are open.
 
 Phase 2 (Mode B, hosted remote browser) started on 2026-11-01 after the user approved
 `docs/plans/phase-2.md` and the Kasm + managed Kubernetes target. Step 1 is done: the
@@ -80,7 +82,10 @@ grew from 14 to 26 so both languages must reject the same documents.
 - Still missing: Docker, llama.cpp, a GGUF model, kubectl, Terraform, and cloud credentials.
   The netns leak suite needs Linux. The `session` module's Kubernetes runtime is fake-client
   tested only and needs a cluster for integration; its default fake runtime runs here.
-- Git: all Phase 1 and Phase 2 work is staged and unstaged; nothing committed.
+- Git: baseline committed and pushed 2026-11-01 to
+  https://github.com/PrDevCore/GeoMindBrowser (`8b8df19`, 164 files, authored as
+  "Pr Dev Core Tech"). The remote's own LICENSE-only "Initial commit" was merged, not
+  overwritten. Windows Credential Manager now holds the GitHub credential.
 
 ## Decisions
 
@@ -105,6 +110,10 @@ grew from 14 to 26 so both languages must reject the same documents.
   and service-worker failures, not a hostile same-user process; E8 is out of scope
   (ADR-0015). Proxy-drift detection and repair shipped 2026-11-01; reconnect with backoff
   remains follow-up hardening.
+- Geolocation fails closed on routed origins (`contentSettings.location` = block, monotonic,
+  applied on policy load and change); timezone and `Intl` stay host-derived and parity is a
+  Mode B property. The manifest now requests `contentSettings` for this one content type
+  (ADR-0019).
 - Session runtime: client-go 0.37.2 with one Secret, NetworkPolicy, and Pod per session;
   hashed DNS-safe names; readiness wait; Pod deleted before the NetworkPolicy and Secret; no
   DNS egress rule (names resolve at the exit); non-root, read-only root FS, dropped
@@ -124,13 +133,12 @@ grew from 14 to 26 so both languages must reject the same documents.
 Phase 2 step 2 is implemented, fake-client tested, linted, and smoke-tested; no cluster was
 touched. Step 3 (session image) needs Docker or a Linux host, neither of which exists here,
 and step 4 (streaming adapter) depends on that image; step 5 adds Terraform and RBAC (plan
-only). Phase 1 still needs AC2 (Linux netns DNS/WebRTC/QUIC/IPv6 capture), an R4 decision
-(timezone/geolocation), a baseline commit so CI can run, and a re-run of the independent
-review. Reconnect with backoff remains hardening. Step 6 stays blocked until llama.cpp and a
-GGUF model are approved.
+only). R4 is closed (ADR-0019). Phase 1 still needs AC2 (Linux netns DNS/WebRTC/QUIC/IPv6
+capture) and a re-run of the independent review. Reconnect with backoff remains hardening. Step 6 stays blocked until
+llama.cpp and a GGUF model are approved.
 
 Nothing may be described as hosted or usable until the image, streaming adapter, Terraform,
 and staging deploy run against a user-provided cluster, domain, IdP, and credentials.
 
-The first GitHub CI run is still pending and is what will execute `go test -race` and the
-typecheck/lint steps.
+The first GitHub CI run started with the 2026-11-01 push and is what executes `go test -race`
+and the typecheck/lint steps; its result has not been read (the `gh` CLI is not signed in).

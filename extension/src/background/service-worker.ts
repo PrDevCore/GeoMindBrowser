@@ -1,9 +1,17 @@
+import { installGeolocationBlocks } from "./geolocation.js";
 import { installHeaderRules } from "./headers.js";
 import { NativeClient, ProtocolError } from "./native-client.js";
 import { installPac, pacSatisfied, readPacSetting, RoutingError, type ValidatedPac } from "./pac.js";
 import { applyWebRtcPolicy, watchWebRtcPolicy } from "./privacy.js";
 import { badgeFor, parseTunnelStatus, type Badge, type RoutingState, type TunnelStatus } from "./status.js";
-import { HEADERS_ENABLED_KEY, PAC_KEY, POLICY_KEY, PRIVACY_KEY, STATUS_KEY } from "../lib/keys.js";
+import {
+  GEOLOCATION_KEY,
+  HEADERS_ENABLED_KEY,
+  PAC_KEY,
+  POLICY_KEY,
+  PRIVACY_KEY,
+  STATUS_KEY,
+} from "../lib/keys.js";
 
 const HOST_NAME = "com.geomind.companion";
 const PROTOCOL_VERSION = 1;
@@ -41,6 +49,7 @@ let policyDirty = false;
 let headersEnabled = false;
 let policyDocument: unknown = null;
 let appliedHeaderDoc: unknown = null;
+let appliedGeolocationDoc: unknown = null;
 let appliedHeaderLocale: string | null | undefined;
 let appliedHeaderEnabled: boolean | null = null;
 let persistChain: Promise<void> = Promise.resolve();
@@ -387,6 +396,31 @@ async function syncHeaderRulesFromState(): Promise<void> {
   }
 }
 
+/**
+ * Blocks geolocation for routed origins whenever the policy document changes.
+ * Blocks are monotonic, so a failed apply leaves the earlier ones in place and
+ * the next policy update retries.
+ */
+async function syncGeolocationFromState(): Promise<void> {
+  if (policyDocument === null || policyDocument === appliedGeolocationDoc) {
+    return;
+  }
+  const document = policyDocument;
+  try {
+    const count = await installGeolocationBlocks(document);
+    if (policyDocument === document) {
+      appliedGeolocationDoc = document;
+    }
+    await chrome.storage.session.set({
+      [GEOLOCATION_KEY]: { state: "blocked", count, at: timestamp() },
+    });
+  } catch {
+    await chrome.storage.session
+      .set({ [GEOLOCATION_KEY]: { state: "error", at: timestamp() } })
+      .catch(() => undefined);
+  }
+}
+
 function startTunnelPolling(active: NativeClient): void {
   stopTunnelPolling();
   pollTimer = setInterval(() => {
@@ -460,6 +494,7 @@ async function refreshPolicy(active: NativeClient): Promise<void> {
     await writeStatus(status);
     applyBadge(badgeFor(status.routing ?? "unavailable", status.routingDetail, status.tunnel?.state, privacyState));
     void syncHeaderRulesFromState();
+    void syncGeolocationFromState();
   } finally {
     policyInFlight = false;
     if (policyDirty) {
@@ -554,6 +589,7 @@ async function connectAndSync(): Promise<void> {
     applyBadge(badgeFor(policySync.routing, policySync.routingDetail, tunnel.state, privacyState));
     startTunnelPolling(active);
     void syncHeaderRulesFromState();
+    void syncGeolocationFromState();
     if (policyDirty) {
       policyDirty = false;
       void refreshPolicy(active);

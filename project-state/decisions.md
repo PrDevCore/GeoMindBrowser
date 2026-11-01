@@ -75,6 +75,16 @@ records session-level choices and their reasons.
   step 4 (streaming adapter) follow. Phase 1 AC2, R4, baseline commit, and review re-run
   remain open.
 
+## 2026-11-01 (R4: timezone and geolocation)
+
+- Decided ADR-0019 at the user's "proceed with the recommended": geolocation is blocked on
+  every routed origin via `contentSettings.location` (monotonic blocks, new
+  `contentSettings` permission), and timezone/`Intl`/`navigator.language` parity is accepted
+  as out of Phase 1 scope because only `chrome.debugger` could override it. Mode B is the
+  path to real parity.
+- Threat-model wording for R4 (T16, section 8.1, open question) was updated on the same day
+  with the user's approval.
+
 ## 2026-11-01 (license)
 
 - Added the Apache-2.0 license at the user's request (ADR-0018): `LICENSE` (verbatim,

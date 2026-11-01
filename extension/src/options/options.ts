@@ -4,7 +4,14 @@
  */
 
 import { installHeaderRules, planHeaderRules, routedTargets, type HeaderPlan } from "../background/headers.js";
-import { HEADER_ORIGINS_KEY, HEADERS_ENABLED_KEY, POLICY_KEY, PRIVACY_KEY, STATUS_KEY } from "../lib/keys.js";
+import {
+  GEOLOCATION_KEY,
+  HEADER_ORIGINS_KEY,
+  HEADERS_ENABLED_KEY,
+  POLICY_KEY,
+  PRIVACY_KEY,
+  STATUS_KEY,
+} from "../lib/keys.js";
 
 interface StatusView {
   readonly state?: string;
@@ -18,8 +25,14 @@ interface PrivacyView {
   readonly state?: string;
 }
 
+interface GeolocationView {
+  readonly state?: string;
+  readonly count?: number;
+}
+
 const statusText = element<HTMLParagraphElement>("status");
 const privacyText = element<HTMLParagraphElement>("privacy");
+const geolocationText = element<HTMLParagraphElement>("geolocation");
 const localeText = element<HTMLParagraphElement>("locale");
 const hostsList = element<HTMLUListElement>("hosts");
 const hostsEmpty = element<HTMLParagraphElement>("hosts-empty");
@@ -77,11 +90,12 @@ function describeStatus(status: StatusView | null): string {
 }
 
 async function refresh(): Promise<void> {
-  const [status, policy, enabled, privacy, storedOrigins] = await Promise.all([
+  const [status, policy, enabled, privacy, geolocation, storedOrigins] = await Promise.all([
     readSession<StatusView>(STATUS_KEY),
     readSession<unknown>(POLICY_KEY),
     headersEnabled(),
     readSession<PrivacyView>(PRIVACY_KEY),
+    readSession<GeolocationView>(GEOLOCATION_KEY),
     grantedOrigins(),
   ]);
 
@@ -98,6 +112,12 @@ async function refresh(): Promise<void> {
         ? "WebRTC protection: active (non-proxied UDP disabled)."
         : "WebRTC protection failed: direct UDP may expose your address.";
   localeText.textContent = locale === null ? "Exit locale: not reported" : `Exit locale: ${locale}`;
+  geolocationText.textContent =
+    geolocation === null
+      ? "Geolocation: not applied yet."
+      : geolocation.state === "blocked"
+        ? `Geolocation: blocked on ${geolocation.count ?? 0} routed site(s).`
+        : "Geolocation blocking failed on routed sites.";
 
   const targets = routedTargets(policy);
   hostsList.replaceChildren(...targets.map((target) => hostItem(target)));

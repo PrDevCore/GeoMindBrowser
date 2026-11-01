@@ -149,6 +149,20 @@ test("installs the companion PAC and reports routing active", async () => {
   expect(pac).not.toContain('"proxy":"DIRECT"');
 });
 
+test("blocks geolocation on routed origins only", async () => {
+  await waitForRouting("active");
+
+  await expect
+    .poll(async () => (await readLocationSetting(`http://${ROUTED_HOST}/`)).setting, {
+      timeout: 10_000,
+      intervals: [250],
+    })
+    .toBe("block");
+
+  const direct = await readLocationSetting(`http://${DIRECT_HOST}/`);
+  expect(direct.setting).toBe("ask");
+});
+
 test("restores the PAC when another controller changes the proxy", async () => {
   const before = await readProxy();
   expect(before.levelOfControl).toBe("controlled_by_this_extension");
@@ -245,6 +259,7 @@ test("offers per-site locale headers and keeps them off until granted", async ()
   await page.goto(`chrome-extension://${extensionId}/options.html`);
   await expect(page.locator("#locale")).toContainText("de-DE");
   await expect(page.locator("#privacy")).toContainText("active");
+  await expect(page.locator("#geolocation")).toContainText("blocked on");
   await expect(page.locator("#hosts")).toContainText(ROUTED_HOST);
   await expect(page.locator("#headers-state")).toContainText("off");
   await expect(page.locator("#enable")).toBeEnabled();
@@ -370,6 +385,17 @@ async function readPac(): Promise<string> {
       }),
   );
   return String(proxy.value.pacScript?.data ?? "");
+}
+
+async function readLocationSetting(primaryUrl: string): Promise<{ setting?: string }> {
+  return serviceWorker.evaluate(
+    (url) =>
+      new Promise<{ setting?: string }>((resolve) => {
+        const c = (globalThis as { chrome: any }).chrome;
+        c.contentSettings.location.get({ primaryUrl: url }, (details: any) => resolve(details));
+      }),
+    primaryUrl,
+  );
 }
 
 async function readStatus(): Promise<CompanionStatus | null> {  return serviceWorker.evaluate(

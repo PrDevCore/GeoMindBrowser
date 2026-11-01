@@ -102,7 +102,7 @@ guarantees, and a hostile process running with the user's OS privileges (E8; see
 | T13 | Companion or model leaks context to disk | No conversation persistence; llama.cpp server without prompt logging; model path read-only; crash dumps disabled | OS swap and pagefile can hold memory | review, offline test |
 | T14 | Secrets in repo or logs | Env vars only, `.env.example` with empty values, CI secret hygiene, keys generated in memory | Test keys could be pasted by mistake | CI hygiene job |
 | T15 | Local model runtime calls home | llama-server launched with no outbound route (loopback bind); offline test runs with no default route | Upstream build flags could change | no-network test |
-| T16 | Fingerprint mismatch (locale/timezone) | Accept-Language and locale set per matched region; timezone override is a known gap (see section 8) | A determined site can detect the mismatch | locale table test, documented gap |
+| T16 | Fingerprint mismatch (locale/timezone/geolocation) | Accept-Language and locale set per matched region; geolocation blocked on routed origins; timezone and `Intl` overrides are a known gap (see section 8, ADR-0019) | A determined site can still detect a timezone or language mismatch | locale table test, geolocation unit and Playwright tests, documented gap |
 | T17 | Session/tab interference | Phase 1 has one profile and one proxy; tabs share the profile by design | No isolation between tabs in Phase 1 | documented |
 
 Note on T1: the fail-closed property depends on the PAC never offering a fallback for a
@@ -160,11 +160,15 @@ That adversary (E8) is out of scope for Phase 1; see section 8, item 8 and ADR-0
 
 ## 8. Residual risks accepted for Phase 1
 
-1. **Timezone mismatch.** Stock Chromium does not expose a supported per-site timezone
-   override without the debugger API (detectable) or an OS setting (a system change that
-   needs approval). Phase 1 can match Accept-Language and locale but not timezone. This
-   conflicts with the networking invariant "timezone ... match the exit country" and is
-   open for a decision (docs/plans/phase-1.md, open questions).
+1. **Timezone and language mismatch; geolocation blocked.** Stock Chromium does not expose a
+   supported per-site timezone override without the debugger API (detectable, with a visible
+   debugger banner) or an OS setting (a system change that needs approval). Phase 1 matches
+   Accept-Language per granted origin and blocks geolocation on routed origins, but not
+   timezone or `navigator.language`/`Intl`. This conflicts with the networking invariant
+   "timezone ... match the exit country"; ADR-0019 (2026-11-01) decided to accept the
+   timezone/language half for Phase 1 and treat parity as a Mode B property, where the
+   session container runs in the exit's timezone and locale. Routes still reach the exit
+   through the proxy; only these page-visible values can disagree.
 2. **No OS-level kill switch.** Only traffic that goes through the extension's PAC is
    covered. Other apps and browser features (updates, Safe Browsing, variations) still use
    the real IP. A firewall kill switch changes system network settings and needs approval.
@@ -191,7 +195,8 @@ That adversary (E8) is out of scope for Phase 1; see section 8, item 8 and ADR-0
 
 ## 9. Open questions
 
-- Timezone: accept the gap, use CDP (detectable), or set the OS timezone with approval?
+- Timezone: settled for Phase 1 (accepted gap, ADR-0019); revisit only if Mode B parity is
+  not acceptable for a Phase 1 use case.
 - Is a real OS firewall kill switch required for Phase 1 acceptance, or is proxy-level
   fail-closed sufficient?
 - Which audited WireGuard implementation do we pin, and has it had an independent audit?

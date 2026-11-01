@@ -13,7 +13,7 @@ Updated: 2026-11-01
 | 4. WireGuard tunnel | done | wireguard-go + netstack, DoH through the tunnel, two-peer tests |
 | 5. Extension routing + leak suite | done (Linux capture pending) | PAC install, privacy policy, badge, polling, hot reload, locale headers, browser fail-closed tests; Linux netns packet capture not run |
 | 6. Offline AI sidebar | blocked | Needs llama.cpp and model approval |
-| 7. Hardening, docs, full suite, security review | blocked | Full suite green; R2, R3, R5-R8 fixed 2026-11-01; R1 scoped out (ADR-0015); R4 (timezone/geolocation) open; AC2/AC3 incomplete |
+| 7. Hardening, docs, full suite, security review | blocked | Full suite green; R2, R3, R5-R8 fixed 2026-11-01; R1 scoped out (ADR-0015); R4 decided with geolocation blocked (ADR-0019), timezone/language documented as out of scope; AC2/AC3 incomplete |
 
 ## Phase 2 (Mode B) steps
 
@@ -616,7 +616,7 @@ is still FAIL.
 | R1 | Critical | A stale PAC keeps pointing at the companion's ephemeral loopback port after the companion dies. A same-user process can bind that port and run a permissive SOCKS5 server; routed hosts then leave from the real IP. The extension has no reconnect timer, so the window lasts until the service worker wakes or the browser restarts. | scoped out for Phase 1 (ADR-0015); hardening pending |
 | R2 | High | Proxy drift is never detected. `installPac` only writes settings; nothing reads `chrome.proxy.settings.get` or `levelOfControl`, unlike the WebRTC watcher. Another extension or an enterprise policy can take control while the badge still says routing active. | fixed 2026-11-01: install read-back, 5 s guard, onChange re-assert, badge on unrecoverable drift; Playwright regression test |
 | R3 | Medium | `privacyStatus: error` is written to session storage but never surfaced in the badge or options page, so a failed WebRTC policy is invisible. | fixed 2026-11-01: badge precedence + options line, unit and Playwright coverage |
-| R4 | Medium | The locale/timezone/geolocation invariant is unmet. `Accept-Language` is opt-in per origin, `navigator.language`/`Intl`/timezone/geolocation are unchanged, and a site can compare them. Timezone is an accepted gap (ADR-0006); geolocation is not documented as one. | open: needs a design decision |
+| R4 | Medium | The locale/timezone/geolocation invariant is unmet. `Accept-Language` is opt-in per origin, `navigator.language`/`Intl`/timezone/geolocation are unchanged, and a site can compare them. Timezone is an accepted gap (ADR-0006); geolocation is not documented as one. | decided and partly fixed 2026-11-01 (ADR-0019): geolocation is blocked on routed origins; timezone/language parity is documented as out of Phase 1 scope and belongs to Mode B |
 | R5 | Medium | Header sync records `applied*` from the globals *after* the `installHeaderRules` await. A policy or toggle change during the await can install the old plan while recording the new state, suppressing the retry. | fixed 2026-11-01 |
 | R6 | Low | `policy.get` reads the document and PAC under separate read locks, so a reload between them can return an old document with a new PAC (mismatch only, not fail-open). | fixed 2026-11-01: `SnapshotWithPAC` + concurrency test |
 | R7 | Low | The startup `syncPolicy` call does not set `policyInFlight`, so a `policy.changed` event during startup can race it; the older install can land last. | fixed 2026-11-01 |
@@ -732,11 +732,31 @@ Playwright case that sets the proxy to `direct` and asserts the PAC is restored 
 still active, `TestSnapshotWithPACIsAtomic`, and the options page assertion that WebRTC
 protection is reported active.
 
-Still open after remediation: R4 (timezone/geolocation parity design decision), AC2 (Linux
-netns capture), AC3/Step 6, reconnect with backoff, `go test -race` (CI only), and the first
-CI run. The unrecoverable-drift path is unit-tested at install time; the guard's own
+Still open after remediation: R4's timezone/language half (documented as out of Phase 1
+scope, not fixable without the debugger API), the threat-model wording update for R4, AC2
+(Linux netns capture), AC3/Step 6, reconnect with backoff, `go test -race` (CI only), and
+reading the first CI run. The unrecoverable-drift path is unit-tested at install time; the guard's own
 unrecoverable branch has no end-to-end test because a persistent foreign controller cannot be
 simulated in the Playwright profile.
+
+## R4 remediation, 2026-11-01
+
+- `extension/src/background/geolocation.ts` plans one `block` rule per routed policy pattern
+  (exact hosts and wildcards) through `chrome.contentSettings.location` and applies all of
+  them, reporting the first failure after the rest were attempted. Blocks are monotonic: a
+  policy change only adds them, so a reload never opens a window.
+- The service worker applies the plan whenever the policy document changes, stores
+  `geolocationStatus` in session storage, and the options page shows how many routed sites are
+  blocked next to the WebRTC status.
+- The manifest adds `contentSettings`, used only for `location`. `docs/decisions.md` ADR-0019
+  records why timezone and `navigator.language`/`Intl` are not spoofed (no MV3 API; the
+  debugger route is visible and itself a fingerprint) and that parity is a Mode B property.
+- Verification: `npm test` 119 passed (5 new geolocation cases), `npm run typecheck` and
+  `npm run lint` clean, `npx playwright test` 8 passed including a new case that reads the
+  location setting back in Chromium (`block` for the routed host, `ask` for a direct host)
+  and checks the options-page line.
+- `docs/threat-model.md` T16 and section 8.1 now record the decision (geolocation blocked,
+  timezone/language accepted for Phase 1, parity is a Mode B property).
 
 ## What works
 

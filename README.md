@@ -8,9 +8,11 @@ loopback SOCKS5 proxy with its fail-closed health gate and tunnel supervisor, th
 WireGuard tunnel (wireguard-go + netstack) with DoH at the exit, and extension routing with
 live status, policy hot reload, proxy-drift repair, and permission-gated locale headers. The
 Linux DNS/WebRTC packet capture (AC2) and the offline AI sidebar (Step 6) are still open. The
-independent security review's findings R2, R3, and R5-R8 are fixed with tests; R4
-(timezone/geolocation parity) remains an open design question, and R1 (a same-user process
-takes over the stale loopback port) is scoped out for Phase 1 under ADR-0015.
+independent security review's findings R2, R3, and R5-R8 are fixed with tests; R4 is decided
+(ADR-0019): geolocation is blocked on routed origins, and timezone/language parity is
+documented as out of Phase 1 scope because no MV3 API can change it without a visible
+debugger attach. R1 (a same-user process takes over the stale loopback port) is scoped out
+for Phase 1 under ADR-0015.
 
 ## What Phase 1 builds
 
