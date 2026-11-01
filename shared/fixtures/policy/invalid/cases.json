@@ -1,0 +1,181 @@
+{
+  "name": "invalid",
+  "knownExits": ["de-test"],
+  "cases": [
+    {
+      "why": "version must be 1",
+      "policy": { "version": 2, "defaultAction": "direct", "rules": [] }
+    },
+    {
+      "why": "defaultAction must be direct in Phase 1",
+      "policy": { "version": 1, "defaultAction": "block", "rules": [] }
+    },
+    {
+      "why": "unknown action",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "a.test", "action": "tunnel" }]
+      }
+    },
+    {
+      "why": "route requires an exit",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "a.test", "action": "route" }]
+      }
+    },
+    {
+      "why": "block must not name an exit",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "a.test", "action": "block", "exit": "de-test" }]
+      }
+    },
+    {
+      "why": "wildcard must be the leading label",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "a.*.com", "action": "block" }]
+      }
+    },
+    {
+      "why": "duplicate rule ids",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [
+          { "id": "dup", "host": "a.test", "action": "block" },
+          { "id": "dup", "host": "b.test", "action": "block" }
+        ]
+      }
+    },
+    {
+      "why": "IP literals are not supported",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "127.0.0.1", "action": "block" }]
+      }
+    },
+    {
+      "why": "unknown policy field",
+      "policy": { "version": 1, "defaultAction": "direct", "rules": [], "extra": true }
+    },
+    {
+      "why": "unknown rule field",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "a.test", "action": "block", "path": "/x" }]
+      }
+    },
+    {
+      "why": "empty id",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "", "host": "a.test", "action": "block" }]
+      }
+    },
+    {
+      "why": "id with a space",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "bad id", "host": "a.test", "action": "block" }]
+      }
+    },
+    {
+      "why": "empty wildcard suffix",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "*.", "action": "block" }]
+      }
+    },
+    {
+      "why": "port in host pattern",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "example.com:443", "action": "block" }]
+      }
+    },
+    {
+      "why": "rules field is required",
+      "policy": { "version": 1, "defaultAction": "direct" }
+    },
+    {
+      "why": "rules must be an array",
+      "policy": { "version": 1, "defaultAction": "direct", "rules": null }
+    },
+    {
+      "why": "priority above the maximum",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "a.test", "action": "block", "priority": 1000001 }]
+      }
+    },
+    {
+      "why": "priority below the minimum",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "a.test", "action": "block", "priority": -1000001 }]
+      }
+    },
+    {
+      "why": "decimal IPv4 with a leading zero",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "010.0.0.1", "action": "block" }]
+      }
+    },
+    {
+      "why": "single-number IPv4",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "2130706433", "action": "block" }]
+      }
+    },
+    {
+      "why": "hex IPv4",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "0x7f000001", "action": "block" }]
+      }
+    },
+    {
+      "why": "hex IPv4 with dot separators",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "0x7f.0.0.1", "action": "block" }]
+      }
+    },
+    {
+      "why": "out-of-range IPv4",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "999.999.999.999", "action": "block" }]
+      }
+    },
+    {
+      "why": "numeric final label is parsed as IPv4",
+      "policy": {
+        "version": 1,
+        "defaultAction": "direct",
+        "rules": [{ "id": "x", "host": "example.123", "action": "block" }]
+      }
+    }
+  ]
+}

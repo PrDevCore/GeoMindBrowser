@@ -1,0 +1,132 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hygiene:
+    name: repo hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Reject committed env, key, and model files
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad="$(git ls-files | grep -E '(^|/)\.env$|\.(pem|key|p12|pfx|gguf)$' || true)"
+          if [ -n "$bad" ]; then
+            echo "Forbidden file types are tracked:"
+            echo "$bad"
+            exit 1
+          fi
+      - name: Reject private key material
+        shell: bash
+        run: |
+          set -euo pipefail
+          hits="$(git grep -n -I -E 'BEGIN ([A-Z]+ )?PRIVATE KEY' -- . ':(exclude).github/**' || true)"
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            exit 1
+          fi
+      - name: Validate tracked JSON
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' f; do
+            node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$f"
+          done < <(git ls-files -z '*.json')
+
+  extension:
+    name: extension
+    if: ${{ hashFiles('extension/package.json') != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Test
+        run: npm test --if-present
+
+  companion:
+    name: companion
+    if: ${{ hashFiles('companion/go.mod') != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: companion/go.mod
+          cache: true
+      - name: Vet
+        run: go vet ./...
+      - name: Lint
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+          "$(go env GOPATH)/bin/golangci-lint" run ./...
+      - name: Test
+        run: go test -race ./...
+
+  session:
+    name: session control plane
+    if: ${{ hashFiles('session/go.mod') != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: session
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: session/go.mod
+          cache: true
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+      - name: Vet
+        run: go vet ./...
+      - name: Lint
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+          "$(go env GOPATH)/bin/golangci-lint" run ./...
+      - name: Test
+        run: go test -race ./...
+
+  leak:
+    name: leak suite
+    needs: companion
+    if: ${{ hashFiles('tests/leak/run.sh') != '' && hashFiles('companion/go.mod') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: companion/go.mod
+          cache: true
+      - name: Run network-namespace leak suite
+        run: sudo -E bash tests/leak/run.sh

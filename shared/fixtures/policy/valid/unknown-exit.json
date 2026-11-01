@@ -1,0 +1,18 @@
+{
+  "name": "unknown-exit",
+  "knownExits": ["de-test"],
+  "policy": {
+    "version": 1,
+    "defaultAction": "direct",
+    "rules": [
+      { "id": "gone-wild", "host": "*.gone.test", "action": "route", "exit": "xx-missing" },
+      { "id": "ok-exact", "host": "ok.gone.test", "action": "route", "exit": "de-test" }
+    ]
+  },
+  "cases": [
+    { "host": "a.gone.test", "action": "block", "exit": "", "rule": "gone-wild" },
+    { "host": "deep.a.gone.test", "action": "block", "exit": "", "rule": "gone-wild" },
+    { "host": "ok.gone.test", "action": "route", "exit": "de-test", "rule": "ok-exact" },
+    { "host": "gone.test", "action": "direct", "exit": "", "rule": "" }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://geomind.invalid/schema/policy.schema.json",
+  "title": "GeoMind policy document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "defaultAction", "rules"],
+  "properties": {
+    "version": { "const": 1 },
+    "defaultAction": { "const": "direct" },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "host", "action"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "host": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "action": { "enum": ["route", "block"] },
+        "exit": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "priority": { "type": "integer", "minimum": -1000000, "maximum": 1000000 }
+      },
+      "if": { "properties": { "action": { "const": "route" } } },
+      "then": { "required": ["exit"] },
+      "else": { "not": { "required": ["exit"] } }
+    }
+  }
+}

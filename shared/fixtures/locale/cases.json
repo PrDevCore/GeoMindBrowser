@@ -1,0 +1,25 @@
+{
+  "valid": [
+    "de-DE",
+    "en-US",
+    "EN-us",
+    "fr-FR",
+    "ja-JP",
+    "pt-BR",
+    "es-419",
+    "zh-Hans-CN",
+    "en",
+    "fil-PH"
+  ],
+  "invalid": [
+    "d",
+    "deutsch",
+    "de_DE",
+    "de-DE-",
+    "de-DE-x",
+    "de--DE",
+    "-de",
+    "DE-de!",
+    "de-DE\r\nX-Evil: 1"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "precedence",
+  "knownExits": ["de-test"],
+  "policy": {
+    "version": 1,
+    "defaultAction": "direct",
+    "rules": [
+      { "id": "wild-policy", "host": "*.policy.test", "action": "route", "exit": "de-test" },
+      { "id": "exact-safe-block", "host": "safe.policy.test", "action": "block" },
+      { "id": "wild-deep", "host": "*.deep.policy.test", "action": "route", "exit": "de-test" },
+      { "id": "wild-prio-low", "host": "*.prio.test", "action": "route", "exit": "de-test", "priority": 0 },
+      { "id": "wild-prio-high", "host": "*.prio.test", "action": "route", "exit": "de-test", "priority": 10 },
+      { "id": "exact-blocked-block", "host": "blocked.prio.test", "action": "block" }
+    ]
+  },
+  "cases": [
+    { "host": "safe.policy.test", "action": "block", "exit": "", "rule": "exact-safe-block" },
+    { "host": "x.deep.policy.test", "action": "route", "exit": "de-test", "rule": "wild-deep" },
+    { "host": "x.policy.test", "action": "route", "exit": "de-test", "rule": "wild-policy" },
+    { "host": "deep.policy.test", "action": "route", "exit": "de-test", "rule": "wild-policy" },
+    { "host": "a.prio.test", "action": "route", "exit": "de-test", "rule": "wild-prio-high" },
+    { "host": "blocked.prio.test", "action": "block", "exit": "", "rule": "exact-blocked-block" },
+    { "host": "prio.test", "action": "direct", "exit": "", "rule": "" },
+    { "host": "policy.test", "action": "direct", "exit": "", "rule": "" }
+  ]
+}

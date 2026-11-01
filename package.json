@@ -1,0 +1,14 @@
+{
+  "name": "geomind-browser-tests",
+  "private": true,
+  "license": "Apache-2.0",
+  "author": "Pr Dev Core Tech",
+  "type": "module",
+  "scripts": {
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.6"
+  }
+}

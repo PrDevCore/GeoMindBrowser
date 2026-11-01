@@ -1,0 +1,36 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+extension/dist/
+extension/*.zip
+coverage/
+test-results/
+playwright-report/
+
+# Go
+companion/bin/
+session/bin/
+*.test
+*.out
+
+# Models and captures
+*.gguf
+*.pcap
+*.pcapng
+
+# Terraform (later phases)
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Logs and OS noise
+*.log
+crash.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

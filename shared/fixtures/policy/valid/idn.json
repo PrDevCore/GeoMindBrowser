@@ -1,0 +1,19 @@
+{
+  "name": "idn",
+  "knownExits": ["de-test"],
+  "policy": {
+    "version": 1,
+    "defaultAction": "direct",
+    "rules": [
+      { "id": "munich-wild", "host": "*.münchen.example", "action": "route", "exit": "de-test" },
+      { "id": "buecher-exact", "host": "bücher.example", "action": "route", "exit": "de-test" }
+    ]
+  },
+  "cases": [
+    { "host": "shop.münchen.example", "action": "route", "exit": "de-test", "rule": "munich-wild" },
+    { "host": "shop.xn--mnchen-3ya.example", "action": "route", "exit": "de-test", "rule": "munich-wild" },
+    { "host": "BÜCHER.EXAMPLE.", "action": "route", "exit": "de-test", "rule": "buecher-exact" },
+    { "host": "bücher.example", "action": "route", "exit": "de-test", "rule": "buecher-exact" },
+    { "host": "münchen.example", "action": "direct", "exit": "", "rule": "" }
+  ]
+}

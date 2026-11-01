@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GeoMind</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>GeoMind</h1>
+
+      <section>
+        <h2>Routing</h2>
+        <p id="status">Loading status…</p>
+        <p id="privacy">WebRTC protection: checking…</p>
+        <p id="locale">Exit locale: not reported</p>
+        <h3>Routed sites</h3>
+        <p id="hosts-empty" hidden>No routed sites in the current policy.</p>
+        <ul id="hosts"></ul>
+        <p class="hint">
+          Rules come from the companion policy file. Saving that file applies changes without
+          restarting the browser.
+        </p>
+      </section>
+
+      <section>
+        <h2>Locale headers</h2>
+        <p>
+          Routed sites can receive an <code>Accept-Language</code> header that matches the exit
+          locale. GeoMind asks for permission only for the routed sites listed above and changes no
+          other header.
+        </p>
+        <div class="actions">
+          <button id="enable" type="button">Enable for routed sites</button>
+          <button id="disable" type="button">Disable</button>
+        </div>
+        <p id="headers-state">Locale headers are off.</p>
+      </section>
+    </main>
+    <script type="module" src="dist/options/options.js"></script>
+  </body>
+</html>

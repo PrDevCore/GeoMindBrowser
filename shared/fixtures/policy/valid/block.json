@@ -1,0 +1,17 @@
+{
+  "name": "block",
+  "knownExits": ["de-test"],
+  "policy": {
+    "version": 1,
+    "defaultAction": "direct",
+    "rules": [
+      { "id": "ads-wild", "host": "*.ads.test", "action": "block" },
+      { "id": "ads-cdn-route", "host": "cdn.ads.test", "action": "route", "exit": "de-test" }
+    ]
+  },
+  "cases": [
+    { "host": "a.ads.test", "action": "block", "exit": "", "rule": "ads-wild" },
+    { "host": "cdn.ads.test", "action": "route", "exit": "de-test", "rule": "ads-cdn-route" },
+    { "host": "ads.test", "action": "direct", "exit": "", "rule": "" }
+  ]
+}

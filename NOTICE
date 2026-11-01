@@ -1,0 +1,9 @@
+GeoMind
+Copyright 2026 Pr Dev Core Tech
+
+This product includes software developed by Pr Dev Core Tech.
+
+Third-party dependencies retain their own licenses and notices. The Go
+modules under companion/ and session/, and the npm packages under
+extension/ and the repository root, carry their license metadata in
+go.mod/go.sum and package-lock.json respectively.

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://geomind.invalid/schema/ipc.schema.json",
+  "title": "GeoMind native messaging envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "type"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "type": {
+      "enum": [
+        "hello",
+        "hello.result",
+        "policy.get",
+        "policy.result",
+        "tunnel.status",
+        "tunnel.status.result",
+        "error",
+        "policy.changed",
+        "ai.summarize",
+        "ai.chunk",
+        "ai.done",
+        "ai.error"
+      ]
+    },
+    "payload": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "hello.result" } }, "required": ["type"] },
+      "then": { "required": ["payload"], "properties": { "payload": { "$ref": "#/$defs/helloResult" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "policy.result" } }, "required": ["type"] },
+      "then": { "required": ["payload"], "properties": { "payload": { "$ref": "#/$defs/policyResult" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "tunnel.status.result" } }, "required": ["type"] },
+      "then": { "required": ["payload"], "properties": { "payload": { "$ref": "#/$defs/tunnelStatus" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "error" } }, "required": ["type"] },
+      "then": { "required": ["payload"], "properties": { "payload": { "$ref": "#/$defs/errorPayload" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "policy.changed" } }, "required": ["type"] },
+      "then": {
+        "required": ["id", "payload"],
+        "properties": {
+          "id": { "const": "event" },
+          "payload": { "$ref": "#/$defs/eventPayload" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "helloResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "policyVersion", "tunnel"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "policyVersion": { "type": "integer", "minimum": 0 },
+        "tunnel": { "$ref": "#/$defs/tunnelStatus" }
+      }
+    },
+    "policyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "pac"],
+      "properties": {
+        "policy": { "$ref": "https://geomind.invalid/schema/policy.schema.json" },
+        "pac": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tunnelStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "exit", "region", "locale", "since"],
+      "properties": {
+        "state": { "enum": ["up", "down", "starting"] },
+        "exit": { "type": ["string", "null"] },
+        "region": { "type": ["string", "null"] },
+        "locale": { "type": ["string", "null"], "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+        "since": { "type": "string", "format": "date-time" }
+      }
+    },
+    "errorPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "eventPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  }
+}

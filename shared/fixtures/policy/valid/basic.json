@@ -1,0 +1,21 @@
+{
+  "name": "basic",
+  "knownExits": ["de-test"],
+  "policy": {
+    "version": 1,
+    "defaultAction": "direct",
+    "rules": [
+      { "id": "example-wildcard", "host": "*.example.com", "action": "route", "exit": "de-test" },
+      { "id": "shop-exact", "host": "shop.example.org", "action": "route", "exit": "de-test" }
+    ]
+  },
+  "cases": [
+    { "host": "a.example.com", "action": "route", "exit": "de-test", "rule": "example-wildcard" },
+    { "host": "a.b.example.com", "action": "route", "exit": "de-test", "rule": "example-wildcard" },
+    { "host": "example.com", "action": "direct", "exit": "", "rule": "" },
+    { "host": "notexample.com", "action": "direct", "exit": "", "rule": "" },
+    { "host": "SHOP.Example.ORG.", "action": "route", "exit": "de-test", "rule": "shop-exact" },
+    { "host": "example.org", "action": "direct", "exit": "", "rule": "" },
+    { "host": "unmatched.test", "action": "direct", "exit": "", "rule": "" }
+  ]
+}

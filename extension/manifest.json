@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "GeoMind",
+  "version": "0.1.0",
+  "description": "Privacy-first browser with geo-routed access.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkhxXauIjsbH+Qsle0aVxckEVvwZDjCgOu5FG6w/STe9ueC0CHhn42C2EC5gZhaDiYMFyao3+VuSaQFk5K64iLXaGlDwOeGTr8fEObUagM+MyJQBjT2qvShXkrfyshOWUuF1OC7I9jnutLO0LHskUvpZjMfM+rJuSBfW9InhQF0cql46Ovv7D3VSzKQKwESVy9WcCW/Qg/7Qd5jf46FoFZnLvgPwSwGpg1nEr0YqetHtqc7hY+xmnWz/ul7G1P6EhZ+o2fuil8ZF4hRdlCLduUNKByA7CxnQz3ieVvPXMV8C+gkidEsU5dOFhSHwldCIn86uD0xvsmedI0g1lVblvwwIDAQAB",
+  "background": {
+    "service_worker": "dist/background/service-worker.js",
+    "type": "module"
+  },
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "proxy",
+    "privacy",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "optional_host_permissions": ["*://*/*"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "GeoMind",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  }
+}
