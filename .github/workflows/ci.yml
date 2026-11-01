@@ -50,7 +50,6 @@ jobs:
 
   extension:
     name: extension
-    if: ${{ hashFiles('extension/package.json') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -73,7 +72,6 @@ jobs:
 
   companion:
     name: companion
-    if: ${{ hashFiles('companion/go.mod') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -95,7 +93,6 @@ jobs:
 
   session:
     name: session control plane
-    if: ${{ hashFiles('session/go.mod') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -120,7 +117,6 @@ jobs:
   leak:
     name: leak suite
     needs: companion
-    if: ${{ hashFiles('tests/leak/run.sh') != '' && hashFiles('companion/go.mod') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
