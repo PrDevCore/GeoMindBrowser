@@ -169,17 +169,26 @@ jobs:
         run: |
           set -uo pipefail
           log="$RUNNER_TEMP/wg-capture.log"
+          # The runner executes this with `bash -e`, so a bare failing command would
+          # abort before the diagnostics below ever ran. `|| status=$?` is what keeps
+          # the capture output observable; run 41501157369 lost its annotations exactly
+          # this way.
+          status=0
           sudo env PATH="$PATH" LEAK_REQUIRE_NETNS=1 LEAK_TUNNEL_TEST="$RUNNER_TEMP/tunnel.test" \
-            bash tests/leak/wg/run.sh >"$log" 2>&1
-          status=$?
+            bash tests/leak/wg/run.sh >"$log" 2>&1 || status=$?
           cat "$log"
-          # Job logs need a GitHub sign-in to read; annotations do not, so the tail of
-          # the capture run is mirrored into them. Percent signs are doubled first so a
-          # captured packet line cannot forge a workflow command.
+          # Job logs need a GitHub sign-in to read; annotations do not, and a check run
+          # publishes only its first ten, so these lines are the diagnosis that survives
+          # to the anonymous API. Percent signs are doubled first so a captured packet
+          # line cannot forge a workflow command.
           if [ "$status" -ne 0 ]; then
+            clean() { sed 's/%/%25/g' | tr -d '\r'; }
             printf '::error::netns capture exited %s\n' "$status"
-            tail -n 15 "$log" | sed 's/%/%25/g' | tr -d '\r' |
+            (grep -E 'FAIL:|skip:|panic:|--- FAIL|not found|exit status' "$log" || true) |
+              clean | head -n 4 |
               while IFS= read -r line; do printf '::error::%s\n' "$line"; done
+            tail -n 2 "$log" | clean |
+              while IFS= read -r line; do printf '::error::tail: %s\n' "$line"; done
           fi
           exit "$status"
       - name: Browser PAC and fail-closed checks
