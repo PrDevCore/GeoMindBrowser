@@ -93,3 +93,19 @@ records session-level choices and their reasons.
   by the root `LICENSE`; no dependency is relicensed.
 - Copyright holder is "Pr Dev Core Tech" (user-specified 2026-11-01, superseding the initial
   "The GeoMind Authors" placeholder). Apache-2.0 does not grant trademark rights.
+
+## 2026-11-02 (Mode B web client)
+
+- Decided ADR-0020 from the user's "build browser as a web app": the web app is the Mode B
+  **launcher**, not a pixel client. KasmVNC keeps owning DTLS/codecs/input; the launcher only
+  speaks `/v1`, opens the provider view as an `https`-only noreferrer link, and guarantees
+  teardown. Stack is TypeScript + Vite + vitest with no framework, chosen by the user; no
+  linter is configured for `web-client` yet.
+- The user approved the remaining plan items with "fix all" after they were listed: new-tab
+  presentation over an iframe (which would need a `frame-ancestors` decision for the stream
+  origin), the launcher-not-pixel-client scope, and the `docs/threat-model.md` section 6 edit
+  recording the launcher host as an operator-visibility surface and `streamUrl` as
+  bearer-equivalent.
+- The launcher stays a local proof. Nothing is hosted: the identity provider (step 4) and the
+  streaming provider (step 5) do not exist, so `web-client` currently runs only against
+  `sessiond` in fake-runtime mode.

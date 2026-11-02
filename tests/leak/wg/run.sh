@@ -10,6 +10,10 @@
 # development machine is unaffected. CI sets LEAK_REQUIRE_NETNS=1, which turns
 # every skip into a failure: a suite that never ran cannot prove the tunnel
 # invariant, so a silent skip would be a false green.
+#
+# CI also sets LEAK_TUNNEL_TEST to a binary built by the unprivileged runner user.
+# Compiling as root would miss the restored Go build cache and resolve a second
+# toolchain, so the privileged step only ever runs a prebuilt binary.
 set -eu
 
 blocked() {
@@ -27,7 +31,7 @@ fi
 if [ "$(id -u)" -ne 0 ]; then
 	blocked "skip: root is required for network namespaces and capture"
 fi
-for tool in unshare ip tcpdump go; do
+for tool in unshare ip tcpdump; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
 		blocked "skip: $tool not found (PATH=$PATH)"
 	fi
@@ -38,14 +42,31 @@ root=$(CDPATH= cd -- "$here/../../.." && pwd)
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-cd "$root/companion"
-go test -c -o "$tmp/tunnel.test" ./internal/tunnel
+# CI builds the test binary as the unprivileged runner user and passes it in, so
+# the root step never touches a toolchain or a cold module cache. Without that
+# variable this script compiles the binary itself, which is what a local
+# one-command run needs.
+if [ -n "${LEAK_TUNNEL_TEST:-}" ]; then
+	if [ ! -x "$LEAK_TUNNEL_TEST" ]; then
+		echo "FAIL: LEAK_TUNNEL_TEST is not an executable file: $LEAK_TUNNEL_TEST"
+		exit 1
+	fi
+	test_bin=$LEAK_TUNNEL_TEST
+else
+	if ! command -v go >/dev/null 2>&1; then
+		blocked "skip: go not found (PATH=$PATH)"
+	fi
+	cd "$root/companion"
+	go test -c -o "$tmp/tunnel.test" ./internal/tunnel
+	test_bin="$tmp/tunnel.test"
+fi
 
 cat >"$tmp/inside.sh" <<'EOF'
 #!/bin/sh
 set -eu
 
 tmp=$1
+tunnel_test=$2
 ip link set lo up
 
 tcpdump -i lo -n -l 'ip' >"$tmp/capture.txt" 2>"$tmp/tcpdump.err" &
@@ -53,7 +74,7 @@ tcpdump_pid=$!
 sleep 1
 
 set +e
-"$tmp/tunnel.test" \
+"$tunnel_test" \
 	-test.run 'TestTwoPeersCarryTrafficAndDoH|TestKillPeerStopsTrafficAndGoesUnhealthy|TestHandshakeFailureStaysUnhealthy' \
 	-test.v -test.timeout 120s >"$tmp/test.log" 2>&1
 status=$?
@@ -71,6 +92,7 @@ fi
 
 if ! grep -q 'UDP' "$tmp/capture.txt"; then
 	echo "FAIL: no WireGuard UDP was captured"
+	cat "$tmp/tcpdump.err"
 	exit 1
 fi
 if grep -q '\.53[: ]' "$tmp/capture.txt"; then
@@ -99,4 +121,4 @@ fi
 echo "PASS: only loopback WireGuard UDP crossed the wire"
 EOF
 
-unshare -n sh "$tmp/inside.sh" "$tmp"
+unshare -n sh "$tmp/inside.sh" "$tmp" "$test_bin"

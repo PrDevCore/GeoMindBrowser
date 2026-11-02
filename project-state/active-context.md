@@ -1,6 +1,6 @@
 # Active Context
 
-Updated: 2026-11-01
+Updated: 2026-11-02
 
 ## Where we are
 
@@ -32,6 +32,15 @@ one NetworkPolicy, and one Pod per session, waits for readiness, and tears down 
 fail-closed order, verified with the fake clientset and manifest assertions. No object has
 been applied to a real cluster; there is no image, streaming provider, OIDC, or Terraform yet,
 and nothing is hosted.
+
+Phase 2 step 8 landed on 2026-11-02 (ADR-0020): `web-client/`, a framework-free TypeScript +
+Vite launcher for Mode B. It speaks only to the `/v1` contract, mirrors the server state
+machine, keeps the bearer token in a page-lifetime closure, opens the provider view as an
+`https`-only noreferrer link, and tears the session down on stop, expiry, error, and
+`pagehide`. It is not a pixel client — KasmVNC owns DTLS and codecs. Verified locally with 45
+vitest cases, a typecheck, a production build, and a headful Playwright run (`npm run test:web`)
+against a real `sessiond` in fake-runtime mode served over `vite preview`; a `web-client` CI job
+runs install, typecheck, test, and build. Nothing about it is hosted.
 
 Step 1 delivered: the Go policy package (parse, validate, match, PAC generation and
 validation), the TypeScript policy mirror, shared fixtures, and a golden PAC checked by both
@@ -118,6 +127,9 @@ grew from 14 to 26 so both languages must reject the same documents.
   hashed DNS-safe names; readiness wait; Pod deleted before the NetworkPolicy and Secret; no
   DNS egress rule (names resolve at the exit); non-root, read-only root FS, dropped
   capabilities, no service-account token (ADR-0017).
+- The Mode B web app is a launcher, not a pixel client (ADR-0020): `/v1` only, no custom
+  media code, token in a closure and never in a URL, new-tab stream view, same-origin hosting
+  behind a reverse proxy, dependencies limited to `typescript`/`vite`/`vitest`.
 
 ## Open decisions
 
@@ -127,6 +139,10 @@ grew from 14 to 26 so both languages must reject the same documents.
 4. Where to run the Linux netns capture: CI runner or a Linux VM.
 5. Whether OS-level isolation (separate user, firewall, authenticated data plane) is required
    before Phase 2 to bring same-user processes back into scope (ADR-0015 defers it).
+6. Which real token the launcher is handed in a deployment. It assumes a token already exists,
+   so it inherits the open OIDC broker decision from ADR-0016.
+7. Whether to give `web-client` a linter; CI's lint step currently skips because no script
+   exists there.
 
 ## Immediate next action
 
@@ -135,7 +151,9 @@ touched. Step 3 (session image) needs Docker or a Linux host, neither of which e
 and step 4 (streaming adapter) depends on that image; step 5 adds Terraform and RBAC (plan
 only). R4 is closed (ADR-0019). Phase 1 still needs AC2 (Linux netns DNS/WebRTC/QUIC/IPv6
 capture) and a re-run of the independent review. Reconnect with backoff remains hardening. Step 6 stays blocked until
-llama.cpp and a GGUF model are approved.
+llama.cpp and a GGUF model are approved. Step 8's launcher is built and locally verified; the
+next Mode B move is still step 3 (session image), which needs Docker or a Linux host, neither
+of which exists here.
 
 Nothing may be described as hosted or usable until the image, streaming adapter, Terraform,
 and staging deploy run against a user-provided cluster, domain, IdP, and credentials.
@@ -145,7 +163,14 @@ and the typecheck/lint steps; run 1 failed to parse (a `hashFiles()` condition a
 since fixed), run 2 passed hygiene, extension, companion and session and failed only the
 leak job, whose logs are behind a sign-in the CLI does not have. The root cause is therefore
 UNCONFIRMED: `go` is not on sudo's `secure_path`, which fits the 51-second failure, so the
-leak job now splits into three named stages and passes `PATH` through `sudo`; the netns stage
-sets `LEAK_REQUIRE_NETNS=1`, which converts its usual "skip" exit into a failure so AC2 can
-never be reported green without a real capture. The next run either passes or names the stage
-that fails.
+leak job now names its stages, passes `PATH` through `sudo`, and mirrors the capture log tail
+into `::error::` annotations, which are readable without a sign-in. The Go test binary is now
+compiled in an unprivileged step and handed to the netns stage through `LEAK_TUNNEL_TEST`, so
+no compilation happens as root; that eliminates the cold-build/PATH class of failure whatever
+caused it. The netns stage sets `LEAK_REQUIRE_NETNS=1`, which converts its usual "skip" exit
+into a failure so AC2 can never be reported green without a real capture. The next run either
+passes or names the stage that fails.
+
+The CI rework, the `web-client` job, and the whole `web-client/` directory are committed but
+**not pushed** (`7ed7291`, `7968b06` and the web-client commit are local). Pushing needs the
+user's approval, so none of the CI diagnostics above have actually executed on GitHub yet.

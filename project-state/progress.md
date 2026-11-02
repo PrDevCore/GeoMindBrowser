@@ -776,7 +776,10 @@ Phase 2 control-plane skeleton also runs locally (`session/cmd/sessiond`): it cr
 reports, expires, and tears down fake remote sessions behind bearer auth, per-user/per-IP
 rate limits, and concurrency caps. The opt-in Kubernetes runtime builds a Secret,
 NetworkPolicy, and Pod per session and is verified against the client-go fake clientset; no
-object has been applied to a cluster.
+object has been applied to a cluster. The Mode B launcher (`web-client/`) builds and runs
+against that fake control plane in a real browser: it starts one session per click, follows
+the state machine, offers the provider view as an `https`-only noreferrer link, and closes the
+session for real, verified end to end by `npm run test:web`.
 
 ## What is stubbed or not started
 
@@ -914,15 +917,31 @@ object has been applied to a cluster.
   parses with 6 leak steps.
 - AC2 remains unproven. Nothing about the tunnel invariant changes until that step goes green.
 
-## Mode B web client plan, 2026-11-02 (awaiting approval)
+## Mode B web client, 2026-11-02 (approved and implemented)
 
 - The user asked to "build browser as a web app" and chose the Mode B streamed-session
-  reading, with TypeScript plus Vite and no framework. Drafted
-  `docs/plans/phase-2-web-client.md`: a launcher and lifecycle app for the existing `/v1`
-  control plane, plus a pointer from `docs/plans/phase-2.md` as proposed step 8.
-- No code written. Four approval items are open: dev-only dependencies (`vite`, `typescript`,
-  `vitest`), stream presentation (new tab vs `frame-ancestors` iframe decision), a
-  `docs/threat-model.md` edit for the hosted launcher and the bearer property of `streamUrl`,
-  and confirmation that this is a launcher rather than a pixel client.
-- Recorded plainly in the plan: it proves nothing hosted. The stream view, egress path, exit
-  IP, and Pod isolation still require steps 3, 5, and 6, and CI's leak job is still failing.
+  reading, with TypeScript plus Vite and no framework. `docs/plans/phase-2-web-client.md` was
+  written first, then approved the same day (dependencies via the stack choice; new-tab
+  presentation, the threat-model edit, and the launcher-not-pixel-client scope via "fix all").
+- Built `web-client/`: `session.ts` mirrors the server state machine, `api.ts` is the typed
+  `/v1` client (bearer only, `credentials: omit`, `cache: no-store`, `no-referrer`, token in a
+  closure), `lifecycle.ts` owns start/poll/expire/teardown-once and the plain-language error
+  mapping, `stream.ts` gates the `https`-only noreferrer link, `ui.ts` renders, `main.ts`
+  wires and hooks `pagehide`. `vite.config.ts` proxies `/v1` and `/healthz` for both `dev` and
+  `preview` so the app stays same-origin.
+- Verified locally: typecheck clean, `Test Files 6 passed (6)`, `Tests 45 passed (45)`
+  including the source-scan privacy suite, `vite build` succeeded, and `npm run test:web`
+  (`playwright.web.config.ts` + `tests/browser/webclient.spec.ts`) reported `3 passed (2.1m)`
+  driving a real `sessiond` in fake mode plus `vite preview` headful: Start → Streaming with
+  an `https://stream.invalid/s/<id>` link → Stop → the control plane answers `404` for that
+  session; a rejected token yields the plain-language failure with no session; the loaded page
+  leaves no storage, cookies, or token text behind.
+- Docs: ADR-0020 in `docs/decisions.md`, `docs/threat-model.md` section 6 now records the
+  launcher host as an operator-visibility surface and `streamUrl` as bearer-equivalent (two
+  bullets, two table rows, extended residual line), and `docs/plans/phase-2.md` step 8 is
+  marked approved with steps 3-7 still open.
+- CI: a `web-client` job mirroring `extension` runs install, typecheck, test, and build. The
+  Playwright end-to-end deliberately stays out of CI (it needs Go, a display, loopback 8080
+  and 4173). No linter is configured for `web-client`, so `npm run lint --if-present` skips.
+- Still true from the draft: it proves nothing hosted. The stream view, egress path, exit IP,
+  and Pod isolation still require steps 3, 5, and 6, and CI's leak job is still failing.

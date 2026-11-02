@@ -70,6 +70,30 @@ jobs:
       - name: Test
         run: npm test --if-present
 
+  web-client:
+    name: web-client
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web-client/package-lock.json
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Test
+        run: npm test --if-present
+      - name: Build
+        run: npm run build
+
   companion:
     name: companion
     runs-on: ubuntu-latest
@@ -129,6 +153,9 @@ jobs:
           cache-dependency-path: companion/go.sum
       - name: Companion fail-closed checks
         run: bash tests/leak/companion/run.sh
+      - name: Build tunnel test binary
+        shell: bash
+        run: cd companion && go test -c -o "$RUNNER_TEMP/tunnel.test" ./internal/tunnel
       - name: Ensure capture tools
         shell: bash
         run: |
@@ -142,14 +169,17 @@ jobs:
         run: |
           set -uo pipefail
           log="$RUNNER_TEMP/wg-capture.log"
-          sudo env PATH="$PATH" LEAK_REQUIRE_NETNS=1 bash tests/leak/wg/run.sh >"$log" 2>&1
+          sudo env PATH="$PATH" LEAK_REQUIRE_NETNS=1 LEAK_TUNNEL_TEST="$RUNNER_TEMP/tunnel.test" \
+            bash tests/leak/wg/run.sh >"$log" 2>&1
           status=$?
-          # Job logs need a GitHub sign-in to read; annotations do not, so the failure
-          # lines are mirrored into them.
+          cat "$log"
+          # Job logs need a GitHub sign-in to read; annotations do not, so the tail of
+          # the capture run is mirrored into them. Percent signs are doubled first so a
+          # captured packet line cannot forge a workflow command.
           if [ "$status" -ne 0 ]; then
-            echo "netns capture exited $status" | sed 's/^/::error::/'
-            grep -E 'skip:|FAIL:|PASS:|not found|panic:|^# |--- FAIL|exit status|Cannot find|no such' "$log" |
-              tail -n 12 | while IFS= read -r line; do echo "::error::${line}"; done
+            printf '::error::netns capture exited %s\n' "$status"
+            tail -n 15 "$log" | sed 's/%/%25/g' | tr -d '\r' |
+              while IFS= read -r line; do printf '::error::%s\n' "$line"; done
           fi
           exit "$status"
       - name: Browser PAC and fail-closed checks
