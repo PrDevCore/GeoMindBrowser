@@ -913,3 +913,16 @@ object has been applied to a cluster.
   `skip:` line with the PATH root saw, and the `FAIL:` line, and still exits 1; the workflow
   parses with 6 leak steps.
 - AC2 remains unproven. Nothing about the tunnel invariant changes until that step goes green.
+
+## Mode B web client plan, 2026-11-02 (awaiting approval)
+
+- The user asked to "build browser as a web app" and chose the Mode B streamed-session
+  reading, with TypeScript plus Vite and no framework. Drafted
+  `docs/plans/phase-2-web-client.md`: a launcher and lifecycle app for the existing `/v1`
+  control plane, plus a pointer from `docs/plans/phase-2.md` as proposed step 8.
+- No code written. Four approval items are open: dev-only dependencies (`vite`, `typescript`,
+  `vitest`), stream presentation (new tab vs `frame-ancestors` iframe decision), a
+  `docs/threat-model.md` edit for the hosted launcher and the bearer property of `streamUrl`,
+  and confirmation that this is a launcher rather than a pixel client.
+- Recorded plainly in the plan: it proves nothing hosted. The stream view, egress path, exit
+  IP, and Pod isolation still require steps 3, 5, and 6, and CI's leak job is still failing.

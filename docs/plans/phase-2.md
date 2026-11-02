@@ -200,6 +200,14 @@ Each step ends with tests, lint, and an updated `project-state/progress.md`.
 7. **Client integration and E2E.** Extension entry point, cross-session isolation, teardown
    timing, and leak checks.
 
+### Step 8 (proposed, not approved): Mode B web client
+
+`docs/plans/phase-2-web-client.md` (draft 2026-11-02) specifies a launcher and lifecycle web
+app for Mode B — the surface a user needs if "the browser" is to arrive as a web app rather
+than as an extension action. It consumes the existing `/v1` contract, builds no pixel client,
+and makes no hosted claim. Its approval items (deps, iframe vs new tab, threat-model edit) are
+unanswered, so nothing is implemented.
+
 ## 10. Acceptance criteria
 
 - A user with a valid token can start one session and load a page through the remote browser.
