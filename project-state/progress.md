@@ -895,3 +895,21 @@ object has been applied to a cluster.
   (0 issues) + `go test ./...`; session `gofmt`/vet/`go test ./...`; extension typecheck +
   119 unit tests; `tests/leak/companion/run.sh` green. The netns capture itself did not run
   here (Windows), so it remains unproven until the next CI attempt.
+
+## CI run 41443658102 (commit `d726ee9`), 2026-11-02
+
+- Hygiene, extension, companion, and session passed again. `Companion fail-closed checks`
+  passed, which confirms the `sudo` PATH theory for that stage. `Network-namespace WireGuard
+  capture` still failed with only "Process completed with exit code 1"; the `Browser PAC and
+  fail-closed checks` step was skipped as expected after the failure.
+- The job log endpoint returns 403 anonymously, so the cause is still unconfirmed. Two
+  candidates remain: `tcpdump`/`unshare` unavailable to root on the runner (now a hard failure
+  instead of a silent skip, which is the intended behaviour of `LEAK_REQUIRE_NETNS=1`), or a
+  genuine capture/test failure inside the namespace.
+- The leak job now adds an `Ensure capture tools` step (installs `tcpdump` only when root
+  cannot find it) and the capture step writes the script output to `$RUNNER_TEMP` and mirrors
+  the diagnostic lines into `::error::` annotations, because annotations are readable without
+  a sign-in and logs are not. Verified: the annotation pipeline emits the exit status, the
+  `skip:` line with the PATH root saw, and the `FAIL:` line, and still exits 1; the workflow
+  parses with 6 leak steps.
+- AC2 remains unproven. Nothing about the tunnel invariant changes until that step goes green.

@@ -129,8 +129,29 @@ jobs:
           cache-dependency-path: companion/go.sum
       - name: Companion fail-closed checks
         run: bash tests/leak/companion/run.sh
+      - name: Ensure capture tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! sudo sh -c 'command -v tcpdump' >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq --no-install-recommends tcpdump
+          fi
       - name: Network-namespace WireGuard capture
-        run: sudo env PATH="$PATH" LEAK_REQUIRE_NETNS=1 bash tests/leak/wg/run.sh
+        shell: bash
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/wg-capture.log"
+          sudo env PATH="$PATH" LEAK_REQUIRE_NETNS=1 bash tests/leak/wg/run.sh >"$log" 2>&1
+          status=$?
+          # Job logs need a GitHub sign-in to read; annotations do not, so the failure
+          # lines are mirrored into them.
+          if [ "$status" -ne 0 ]; then
+            echo "netns capture exited $status" | sed 's/^/::error::/'
+            grep -E 'skip:|FAIL:|PASS:|not found|panic:|^# |--- FAIL|exit status|Cannot find|no such' "$log" |
+              tail -n 12 | while IFS= read -r line; do echo "::error::${line}"; done
+          fi
+          exit "$status"
       - name: Browser PAC and fail-closed checks
         run: |
           set -euo pipefail
