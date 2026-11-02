@@ -1,6 +1,9 @@
 #!/bin/sh
 # Leak suite entry point. Each stage skips only when its prerequisites are
 # missing; a failing assertion fails the run.
+#
+# CI does not call this script: the workflow runs the same stages as separate
+# steps with LEAK_REQUIRE_NETNS=1 so a skipped netns capture fails the build.
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)

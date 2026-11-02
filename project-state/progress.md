@@ -839,8 +839,8 @@ object has been applied to a cluster.
   page leaves the rules present and inert; the options page re-syncs on the next open.
 - Playwright and Chromium are dev-only and pinned in `package.json`; the browser suite needs
   a display (headful) and `npm install` plus `npx playwright install chromium`.
-- `go test -race` was not run locally (the Windows race detector needs a C toolchain). CI is
-  configured to run it, but CI has still not executed on GitHub.
+- `go test -race` was not run locally (the Windows race detector needs a C toolchain). CI ran
+  it on GitHub on 2026-11-01 and the companion and session jobs passed with it.
 - Mode B terminates TLS inside the session container, so the exit operator can see page
   content. That limitation must be stated in user-facing docs before any hosted release; it
   is the main reason Mode A remains the content-confidentiality path.
@@ -869,3 +869,29 @@ object has been applied to a cluster.
 - `extension/test/unit/manifest.test.ts` now asserts every declared icon exists and is a PNG
   of the declared size. Extension tests 114 passed, lint clean, Playwright 7 passed with the
   icons loaded.
+
+## CI leak-suite remediation, 2026-11-01
+
+- Run `41333277008` (commit `d2809b9`): hygiene 7s, extension 36s, companion 2m17s, and
+  session 4m37s passed; the leak suite failed after 51s on `Run network-namespace leak
+  suite`. Log bodies require a GitHub sign-in the CLI does not have, so the cause is
+  UNCONFIRMED. The single annotation is "Process completed with exit code 1."
+- Most likely cause: the job ran `sudo -E bash tests/leak/run.sh` and sudo's `secure_path`
+  drops the `setup-go` toolchain directory, so the first stage failed on a missing `go`.
+  A cold root-owned module cache and a genuine capture failure are the other candidates;
+  the 51s duration and the companion job passing the same tests argue against the last.
+- `.github/workflows/ci.yml` now runs the leak suite as three named steps: `Companion
+  fail-closed checks` (unsudoed), `Network-namespace WireGuard capture`
+  (`sudo env PATH="$PATH" LEAK_REQUIRE_NETNS=1 bash tests/leak/wg/run.sh`), and `Browser PAC
+  and fail-closed checks`. A failure names its stage.
+- `tests/leak/wg/run.sh` gains a `blocked()` helper: with `LEAK_REQUIRE_NETNS=1` every skip
+  (non-Linux, non-root, missing `unshare`/`ip`/`tcpdump`/`go`) exits 1 and prints the PATH it
+  searched. Local and Windows runs keep skipping with exit 0. Without this, AC2 could only
+  ever have been reported green by a run that never captured anything.
+- The three Go jobs set `cache-dependency-path` (`companion/go.sum`, `session/go.sum`), which
+  removes the `Restore cache failed: Dependencies file is not found` warnings.
+- Verified locally: `sh -n` on all three leak scripts; `LEAK_REQUIRE_NETNS=1 sh
+  tests/leak/wg/run.sh` exits 1 where the plain run exits 0; companion vet + golangci-lint
+  (0 issues) + `go test ./...`; session `gofmt`/vet/`go test ./...`; extension typecheck +
+  119 unit tests; `tests/leak/companion/run.sh` green. The netns capture itself did not run
+  here (Windows), so it remains unproven until the next CI attempt.

@@ -7,21 +7,29 @@
 # port 53, TCP, ICMP, or any other address is a failure.
 #
 # Requires Linux and root. Prints "skip" and exits 0 elsewhere, so the Windows
-# development machine is unaffected.
+# development machine is unaffected. CI sets LEAK_REQUIRE_NETNS=1, which turns
+# every skip into a failure: a suite that never ran cannot prove the tunnel
+# invariant, so a silent skip would be a false green.
 set -eu
 
-if [ "$(uname -s)" != "Linux" ]; then
-	echo "skip: the network namespace suite is Linux only"
+blocked() {
+	echo "$1"
+	if [ "${LEAK_REQUIRE_NETNS:-}" = "1" ]; then
+		echo "FAIL: LEAK_REQUIRE_NETNS=1 forbids skipping the network namespace suite"
+		exit 1
+	fi
 	exit 0
+}
+
+if [ "$(uname -s)" != "Linux" ]; then
+	blocked "skip: the network namespace suite is Linux only"
 fi
 if [ "$(id -u)" -ne 0 ]; then
-	echo "skip: root is required for network namespaces and capture"
-	exit 0
+	blocked "skip: root is required for network namespaces and capture"
 fi
 for tool in unshare ip tcpdump go; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
-		echo "skip: $tool not found"
-		exit 0
+		blocked "skip: $tool not found (PATH=$PATH)"
 	fi
 done
 

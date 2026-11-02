@@ -82,6 +82,7 @@ jobs:
         with:
           go-version-file: companion/go.mod
           cache: true
+          cache-dependency-path: companion/go.sum
       - name: Vet
         run: go vet ./...
       - name: Lint
@@ -103,6 +104,7 @@ jobs:
         with:
           go-version-file: session/go.mod
           cache: true
+          cache-dependency-path: session/go.sum
       - name: Format
         run: test -z "$(gofmt -l .)"
       - name: Vet
@@ -124,5 +126,16 @@ jobs:
         with:
           go-version-file: companion/go.mod
           cache: true
-      - name: Run network-namespace leak suite
-        run: sudo -E bash tests/leak/run.sh
+          cache-dependency-path: companion/go.sum
+      - name: Companion fail-closed checks
+        run: bash tests/leak/companion/run.sh
+      - name: Network-namespace WireGuard capture
+        run: sudo env PATH="$PATH" LEAK_REQUIRE_NETNS=1 bash tests/leak/wg/run.sh
+      - name: Browser PAC and fail-closed checks
+        run: |
+          set -euo pipefail
+          if [ ! -d node_modules/@playwright ]; then
+            echo "SKIP: the browser stage needs npm ci and a Chromium install; it runs locally"
+          else
+            npm run test:browser
+          fi

@@ -141,4 +141,11 @@ Nothing may be described as hosted or usable until the image, streaming adapter,
 and staging deploy run against a user-provided cluster, domain, IdP, and credentials.
 
 The first GitHub CI run started with the 2026-11-01 push and is what executes `go test -race`
-and the typecheck/lint steps; its result has not been read (the `gh` CLI is not signed in).
+and the typecheck/lint steps; run 1 failed to parse (a `hashFiles()` condition at job level,
+since fixed), run 2 passed hygiene, extension, companion and session and failed only the
+leak job, whose logs are behind a sign-in the CLI does not have. The root cause is therefore
+UNCONFIRMED: `go` is not on sudo's `secure_path`, which fits the 51-second failure, so the
+leak job now splits into three named stages and passes `PATH` through `sudo`; the netns stage
+sets `LEAK_REQUIRE_NETNS=1`, which converts its usual "skip" exit into a failure so AC2 can
+never be reported green without a real capture. The next run either passes or names the stage
+that fails.
