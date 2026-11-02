@@ -181,11 +181,15 @@ jobs:
           # publishes only its first ten, so these lines are the diagnosis that survives
           # to the anonymous API. Percent signs are doubled first so a captured packet
           # line cannot forge a workflow command.
+          clean() { sed 's/%/%25/g' | tr -d '\r'; }
+          # The loopback-ICMP allowance in run.sh is published as evidence on every run,
+          # pass or fail, so the loosened check stays auditable without a sign-in.
+          { grep -E '^icmp: ' "$log" || true; } | clean | head -n 2 |
+            while IFS= read -r line; do printf '::notice::%s\n' "$line"; done
           if [ "$status" -ne 0 ]; then
-            clean() { sed 's/%/%25/g' | tr -d '\r'; }
             printf '::error::netns capture exited %s\n' "$status"
             (grep -E 'FAIL:|skip:|panic:|--- FAIL|not found|exit status' "$log" || true) |
-              clean | head -n 4 |
+              clean | head -n 3 |
               while IFS= read -r line; do printf '::error::%s\n' "$line"; done
             tail -n 2 "$log" | clean |
               while IFS= read -r line; do printf '::error::tail: %s\n' "$line"; done
