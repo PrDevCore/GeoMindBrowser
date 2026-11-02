@@ -120,3 +120,23 @@ records session-level choices and their reasons.
 - Chose to fix the annotation pipeline instead of concluding the leak job's cause. The step
   aborted under the runner's `bash -e` before emitting anything, so the run proved the
   *diagnostic* was broken, not what fails inside the namespace.
+
+## 2026-11-02 (CI green, capture rule narrowed to the leak question)
+
+- Run `41508832667` at `5345db9` is green on all six jobs, so the netns capture now runs
+  unattended and `go test -race` is exercised in CI. This is the first run that proves the
+  tunnel and DoH path with only loopback up.
+- Changed the capture assertion from "no ICMP on the wire" to "every captured packet is
+  loopback-only". The old rule could not pass: a UDP send to the deliberately stopped peer
+  makes the kernel answer `127.0.0.1 udp port N unreachable`, and that reply cannot leave the
+  namespace. The invariant is about an address reaching the host, not about protocol silence,
+  so the rule now tests the invariant.
+  Invariant affected: `02-network.md` "Tunnel down means geo-routed traffic stops" test
+  coverage. Test: `tests/leak/wg/run.sh`. Every ICMP packet is also published as a CI
+  `::notice::`, so the loosening stays auditable without a GitHub sign-in and a real leak is
+  still a failure.
+- Read the leak job's step conclusions and annotations from the public check-run API; job logs
+  stay behind a sign-in the CLI does not have, which is why the diagnosis is carried by
+  `::error::`/`::notice::` lines and bounded to fit the ten-per-check-run limit.
+- AC2 is recorded as **partially proven**, not proven. The tcpdump filter is `ip`, so IPv6 is
+  not captured at all, and QUIC and browser-level WebRTC ICE candidates are still uncovered.

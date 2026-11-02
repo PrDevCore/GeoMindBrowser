@@ -11,7 +11,7 @@ Updated: 2026-11-01
 | 2. Companion skeleton + native messaging | done | IPC codec, dispatch, handlers, extension service worker, installers |
 | 3. Proxy, supervisor, fail-closed gate | done | Loopback SOCKS5, health gate, supervisor, fake-tunnel tests |
 | 4. WireGuard tunnel | done | wireguard-go + netstack, DoH through the tunnel, two-peer tests |
-| 5. Extension routing + leak suite | done (Linux capture pending) | PAC install, privacy policy, badge, polling, hot reload, locale headers, browser fail-closed tests; Linux netns packet capture not run |
+| 5. Extension routing + leak suite | done (tunnel capture green; QUIC/IPv6/WebRTC capture open) | PAC install, privacy policy, badge, polling, hot reload, locale headers, browser fail-closed tests; the netns WireGuard+DoH capture passes in CI (run 41508832667) |
 | 6. Offline AI sidebar | blocked | Needs llama.cpp and model approval |
 | 7. Hardening, docs, full suite, security review | blocked | Full suite green; R2, R3, R5-R8 fixed 2026-11-01; R1 scoped out (ADR-0015); R4 decided with geolocation blocked (ADR-0019), timezone/language documented as out of scope; AC2/AC3 incomplete |
 
@@ -786,8 +786,11 @@ session for real, verified end to end by `npm run test:web`.
 - No defense against a hostile process running as the same OS user (E8); Phase 1 trusts the
   OS user boundary (ADR-0015). Reconnect with backoff remains follow-up hardening; proxy
   drift detection and repair now ship.
-- No native Linux netns DNS/WebRTC/QUIC/IPv6 capture yet; only the code-level fail-closed
-  and browser routing proofs exist.
+- The netns tunnel and DoH capture now runs and passes in CI (run 41508832667, 2026-11-02):
+  inside a fresh Linux network namespace with only loopback up, the three tunnel tests pass and
+  every captured packet is loopback WireGuard UDP, plus the kernel's loopback
+  destination-unreachable ICMP replies. What is still not captured: IPv6 (the filter is `ip`),
+  QUIC/UDP-443 from a real browser, and browser-level WebRTC candidates.
 - Header rules cover top-level and script-initiated requests from the granted origin. A
   third-party subresource initiated by an ungranted site is not rewritten, which is
   documented as a Phase 1 limitation (ADR-0014).
@@ -819,11 +822,12 @@ session for real, verified end to end by `npm run test:web`.
   dependency on 2026-10-30 (ADR-0009); the Phase 1 security review must still judge it.
 - gVisor and wintun are transitive dependencies. wintun is compiled but unused because the
   device runs in userspace with netstack.
-- The netns packet-capture harness has not run. Until it does, "no packet leaves outside the
-  tunnel" rests on code structure (netstack-only dialing, the proxy AST guard) and on the
-  browser fail-closed test, not on an observed capture. In particular, whether Chrome
-  resolves a SOCKS5 hostname locally is unproven; the browser test intentionally maps the
-  test host through `--host-resolver-rules`, so it does not answer that question.
+- The netns packet-capture harness runs and passes in CI as of run 41508832667, so "no packet
+  leaves outside the tunnel" is now backed by an observed capture for the tunnel and DoH path,
+  not only by code structure (netstack-only dialing, the proxy AST guard) and the browser
+  fail-closed test. Still unproven: IPv6 and QUIC (the capture filter is `ip`), and whether
+  Chrome resolves a SOCKS5 hostname locally — the browser test maps the test host through
+  `--host-resolver-rules`, so it does not answer that question.
 - The extension validates the PAC with a TypeScript mirror. A semantic drift between the Go
   validator and the TS validator would let a malformed PAC through only if both accept it;
   the shared golden PAC is the parity guard.
@@ -978,3 +982,34 @@ the first time the failure is named to the step.
   (`exit=0`), `npm test` (`Test Files 6 passed (6)`, `Tests 45 passed (45)`), and
   `npm run build` (`✓ built in 557ms`).
 - AC2 is still unproven. The next run must show the capture step's real diagnosis.
+
+## CI run 41508832667 (commit `5345db9`), 2026-11-02 — all six jobs green
+
+Run 41506994675 (`5043575`) named both causes at last. The annotation pipeline worked: the
+leak job reported `netns capture exited 1` and `FAIL: ICMP appeared on the wire`, and the
+web-client job reported `Cannot find name 'node:fs'`.
+
+- **web-client is fixed and green.** `@types/node` is now declared in `web-client/package.json`
+  instead of being hoisted from the repo-root `node_modules` that CI never installs.
+- **leak is fixed and green.** The tunnel tests passed inside the namespace, WireGuard UDP was
+  captured, no port-53 and no TCP appeared, and the suite died on a blanket ICMP ban. The CI
+  notices now carry the actual packets, on every run:
+  `IP 127.0.0.1 > 127.0.0.1: ICMP 127.0.0.1 udp port 38741 unreachable` (x2, ports/lengths
+  differ). That is the kernel's destination-unreachable reply to our own UDP send to a peer the
+  tests deliberately stop, in a namespace with one interface and no route. It cannot reach a
+  site or reveal a real IP, so the ban was testing a harness artefact.
+- The rule is now the invariant: every captured packet must be `127.0.0.1`-to-`127.0.0.1` and
+  either WireGuard UDP or ICMP. Non-loopback addresses in either direction, port 53, any TCP
+  and any other protocol still fail — and raw TCP to loopback, which used to be caught only by
+  the `Flags [` match, is now caught by the protocol clause too. Verified against six synthetic
+  captures: loopback UDP pass, loopback UDP+ICMP pass, non-loopback UDP fail, `127.0.0.1 >
+  8.8.8.8` ICMP echo fail, loopback>remote TCP fail, port-53 caught by its own check.
+- The annotation set is trimmed to fit the ten annotations a check run publishes; `icmp:` lines
+  moved out of the failure grep into an unconditional notice block.
+- **What this proves:** the userspace WireGuard tunnel and its DoH path run with no host
+  connectivity and put nothing but loopback WireGuard UDP (plus kernel loopback ICMP) on the
+  wire, in a real Linux network namespace, in CI, with `go test -race` active. This is the
+  capture proof Phase 1 has been missing.
+- **What it does not prove:** AC2 also names QUIC, IPv6, and WebRTC at the browser level. The
+  tcpdump filter is `ip`, so IPv6 is not captured at all, and this suite never runs a browser.
+  Those three need their own netns capture cases before AC2 can be called complete.

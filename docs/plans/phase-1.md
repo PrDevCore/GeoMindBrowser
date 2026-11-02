@@ -1,13 +1,15 @@
 # Phase 1 Plan: MV3 extension, Go companion, offline AI sidebar
 
 Status: **approved 2026-10-30**. Steps 1-5 are implemented; all locally runnable suites pass.
-Step 5's Linux packet-capture half and the AC2 proof are still missing. Policy hot reload,
+The step 5 Linux netns capture now runs in CI (2026-11-02): it proves the WireGuard tunnel and
+DoH path need no host connectivity, but IPv6, QUIC and browser-level WebRTC ICE candidates are
+still uncovered, so the AC2 proof is partial. Policy hot reload,
 live tunnel status, and locale header rules landed 2026-10-30 (ADR-0012, ADR-0013,
 ADR-0014). The independent security review returned **FAIL**; R1 (same-user process takes
 over the stale loopback port) was closed as an explicit Phase 1 scope decision (ADR-0015).
 R2, R3, and R5-R8 were fixed 2026-11-01 with tests; R4 was decided the same day (ADR-0019:
 geolocation blocked on routed origins, timezone/language parity accepted for Phase 1).
-Phase 1 is still not complete: the Linux capture half of step 5 is missing. Step 6 needs
+Phase 1 is still not complete: AC2 is partially proven. Step 6 needs
 llama.cpp and model approval.
 Verification is recorded in `project-state/progress.md`.
 
@@ -59,7 +61,7 @@ Ship a Phase 1 client that does three things and nothing else:
 | # | Criterion (from kickoff) | Proof |
 | --- | --- | --- |
 | AC1 | `*.example.com -> Germany` style rules apply correctly | Shared policy fixtures pass in Go and TypeScript; PAC unit tests; browser routing test observes the tunnel peer |
-| AC2 | A WebRTC/DNS leak test shows the exit region, not the real one | Linux netns suite with tcpdump: no local DNS queries, no host/public ICE candidates, no direct packets to origin |
+| AC2 | A WebRTC/DNS leak test shows the exit region, not the real one | **Partially proven 2026-11-02.** The Linux netns suite with tcpdump runs in CI: with only loopback up, the tunnel and DoH traffic are captured and every packet must be loopback-only, and no DNS appears on port 53. Still to cover: IPv6 (the filter is `ip`), QUIC, and host/public ICE candidates from a real routed browser tab. |
 | AC3 | AI sidebar works fully offline and reads a page only when invoked | Offline netns (no default route) summarizing a local page; capture shows loopback only; test asserts no page read before the click |
 
 ## 5. File layout
@@ -305,11 +307,14 @@ Status: done 2026-10-30 (see project-state/progress.md).
 - Gate: confirmed 2026-10-30. The user approved `golang.zx2c4.com/wireguard`; no standalone
   third-party audit of the Go implementation exists, recorded in ADR-0009.
 - Local verification used two in-process peers over loopback instead of netns. The
-  `tests/leak/wg/run.sh` capture harness exists but has not run on the Windows dev host.
+  `tests/leak/wg/run.sh` capture harness now runs in CI (2026-11-02, green at `5345db9`);
+  it cannot run on the Windows dev host because network namespaces and tcpdump are Linux
+  features.
 
 ### Step 5: Extension routing and leak suite
 
-Status: implemented 2026-10-30; Linux netns DNS/WebRTC/QUIC/IPv6 capture and the
+Status: implemented 2026-10-30; the Linux netns tunnel/DoH capture runs in CI as of
+2026-11-02. QUIC/IPv6 capture, browser-level WebRTC ICE-candidate capture and the
 restart/tab-restore run are still missing. Review findings R2, R3, and R5-R8 were fixed
 2026-11-01; R4 was decided 2026-11-01 (ADR-0019) and R1 is scoped out (ADR-0015). See
 project-state/progress.md.
@@ -326,10 +331,13 @@ project-state/progress.md.
   header-plan and DNR install unit tests; Playwright Chromium with a real native host proves
   PAC installation, WebRTC policy, fail-closed routing, direct control traffic, live tunnel
   polling, hot reload of an edited policy (including an invalid reload keeping the old PAC),
-  and that no header rules exist before a permission grant. Still needs the Linux netns
-  DNS/WebRTC/QUIC/IPv6 capture and restart/tab-restore run.
-- Acceptance: AC1 is proven in Chromium for the routing path; AC2 still needs the netns
-  capture to show zero local DNS queries and no real ICE candidates.
+  and that no header rules exist before a permission grant. The Linux netns tunnel/DoH
+  capture runs in CI; QUIC/IPv6 capture, a browser-level ICE-candidate capture and the
+  restart/tab-restore run are still needed.
+- Acceptance: AC1 is proven in Chromium for the routing path. AC2 is partially proven: the
+  netns capture shows the tunnel and DoH queries working with no host connectivity and every
+  captured packet confined to loopback. It does not yet show zero local DNS queries or no
+  real ICE candidates for a routed browser tab.
 - Dependencies: Playwright 1.64.1 and pinned Chromium 156 (approved 2026-10-30).
 
 ### Step 6: Offline AI sidebar

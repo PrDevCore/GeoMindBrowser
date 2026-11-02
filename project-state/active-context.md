@@ -20,8 +20,9 @@ scope for routing integrity. On 2026-11-01 R2, R3, and R5-R8 were fixed with tes
 read-back and drift repair, visible WebRTC failures, race fixes, atomic `policy.get`,
 options grant cleanup). R4 was decided on 2026-11-01 (ADR-0019): geolocation is blocked on
 every routed origin through `contentSettings.location`, and timezone/`Intl`/language parity
-is documented as out of Phase 1 scope. Phase 1 is still not complete: AC2 (Linux capture) and
-Step 6 are open.
+is documented as out of Phase 1 scope. Phase 1's tunnel capture now runs green in CI
+(run 41508832667); AC2 still needs IPv6, QUIC, and browser-level WebRTC capture cases, and
+Step 6 is open.
 
 Phase 2 (Mode B, hosted remote browser) started on 2026-11-01 after the user approved
 `docs/plans/phase-2.md` and the Kasm + managed Kubernetes target. Step 1 is done: the
@@ -146,35 +147,44 @@ grew from 14 to 26 so both languages must reject the same documents.
 
 ## Immediate next action
 
+CI is green end to end at `5345db9`, which is the first run where the netns tunnel capture
+actually executed and passed. Phase 1's remaining AC2 work is now specific: the capture suite
+covers the tunnel and DoH path, but not QUIC, not IPv6 (the tcpdump filter is `ip`), and not
+browser-level WebRTC inside the namespace. Those need their own capture cases, and the
+independent security review still has to be re-run over R2-R8, ADR-0019, and this test-rule
+change. Reconnect with backoff remains hardening.
+
 Phase 2 step 2 is implemented, fake-client tested, linted, and smoke-tested; no cluster was
-touched. Step 3 (session image) needs Docker or a Linux host, neither of which exists here,
-and step 4 (streaming adapter) depends on that image; step 5 adds Terraform and RBAC (plan
-only). R4 is closed (ADR-0019). Phase 1 still needs AC2 (Linux netns DNS/WebRTC/QUIC/IPv6
-capture) and a re-run of the independent review. Reconnect with backoff remains hardening. Step 6 stays blocked until
-llama.cpp and a GGUF model are approved. Step 8's launcher is built and locally verified; the
-next Mode B move is still step 3 (session image), which needs Docker or a Linux host, neither
-of which exists here.
+touched. Step 3 (session image) needs Docker or a Linux host, neither of which exists here, and
+step 4 (streaming adapter) depends on that image; step 5 adds Terraform and RBAC (plan only).
+Step 6 stays blocked until llama.cpp and a GGUF model are approved. Step 8's launcher is built,
+locally verified end to end, and gated in CI.
 
 Nothing may be described as hosted or usable until the image, streaming adapter, Terraform,
 and staging deploy run against a user-provided cluster, domain, IdP, and credentials.
 
-GitHub CI is now the observable referee; run 3 (`ef95070`, run 41501157369, 2026-11-02) passed
-hygiene, extension, companion and session and failed exactly two jobs, each named to the step:
+GitHub CI is now the observable referee, and after three fixes **run 41508832667 (`5345db9`)
+is green on all six jobs** — hygiene, extension, web-client, companion, session, and the netns
+leak capture, with `go test -race` active:
 
-- **leak**: the unprivileged `Build tunnel test binary` step and `Ensure capture tools` both
-  succeeded, and `Network-namespace WireGuard capture` failed. The cold-build-as-root theory
-  is eliminated as the sole cause; the diagnosis is inside the privileged step. My own
-  annotation pipeline never ran because the runner executes `run:` with `bash -e` and the
-  failing `sudo` line aborted the step, which is why only `Process completed with exit code 1`
-  was visible. Fixed with `|| status=$?` plus a bounded annotation set (exit status, up to 4
-  matched diagnostic lines, last 2 log lines, `%` doubled). The next run will show why.
-- **web-client**: typecheck failed because `@types/node` was hoisted from the repo-root
-  `node_modules` locally and never declared in `web-client/package.json`. Added it and
-  reproduced CI's isolation in a directory with no parent `node_modules`: typecheck clean, 45
-  tests pass, build succeeds.
+- **leak** failed at `Network-namespace WireGuard capture` with `FAIL: ICMP appeared on the
+  wire`, after `Build tunnel test binary` (unsudoed) and `Ensure capture tools` both passed.
+  Two separate bugs: the cold-build-as-root theory was wrong as a cause, and my annotation
+  pipeline never ran because the runner executes `run:` with `bash -e`, so the failing `sudo`
+  line aborted the step before `status=$?`. Fixed with `|| status=$?` and a bounded annotation
+  set. The captured packets, published as CI notices on every run, are
+  `IP 127.0.0.1 > 127.0.0.1: ICMP 127.0.0.1 udp port 38741 unreachable` — the kernel's reply to
+  our own UDP send to a peer the tests stop. The rule is now loopback-scoped instead of an ICMP
+  ban: any non-`127.0.0.1` address, port 53, any TCP, any other protocol still fails.
+- **web-client** failed at typecheck because `@types/node` was hoisted from the repo-root
+  `node_modules` locally and never declared in `web-client/package.json`. Declared it, and
+  reproduced CI's isolation (a directory with no parent `node_modules`): typecheck clean, 45
+  tests, build succeeds.
 
-AC2 is still unproven and nothing may be claimed about the tunnel invariant until the capture
-step goes green. Job logs still need a sign-in; annotations do not.
+AC2 is now **partially** proven: the tunnel and DoH path are captured in a real Linux namespace
+in CI. The QUIC, IPv6, and browser-level WebRTC cases are not covered — the tcpdump filter is
+`ip`, so IPv6 is never captured, and this suite runs no browser. Job logs still need a sign-in;
+annotations do not.
 
 All of it is pushed: the user asked to run the leak job on GitHub, which required pushing, and
-`d726ee9..ef95070` went to `main` as a fast-forward. Future pushes still need approval.
+`d726ee9..5345db9` went to `main` as fast-forwards. Future pushes still need approval.
