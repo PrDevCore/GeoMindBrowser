@@ -945,3 +945,36 @@ session for real, verified end to end by `npm run test:web`.
   and 4173). No linter is configured for `web-client`, so `npm run lint --if-present` skips.
 - Still true from the draft: it proves nothing hosted. The stream view, egress path, exit IP,
   and Pod isolation still require steps 3, 5, and 6, and CI's leak job is still failing.
+
+## CI run 41501157369 (commit `ef95070`), 2026-11-02
+
+Pushed the four local commits so the leak job could finally be observed. All jobs ran:
+**hygiene, extension, companion, and session passed; leak and web-client failed**, and for
+the first time the failure is named to the step.
+
+- Leak job: `Companion fail-closed checks` passed, **`Build tunnel test binary` passed** (so
+  the Go compile is fine unsudoed and was never proven to be the cause), `Ensure capture
+  tools` passed (root finds `tcpdump`), and **`Network-namespace WireGuard capture` failed**.
+  The cold-build-as-root theory is now eliminated as the sole explanation; the failure is
+  inside the privileged capture step.
+- No `::error::` annotations from my own script appeared — only `Process completed with exit
+  code 1`. Cause: the runner executes `run:` blocks with `bash -e`, so the failing `sudo` line
+  aborted the step before `status=$?`, `cat "$log"`, and the annotation loop ever ran. The
+  diagnostic was the bug. Fixed with `status=0; ... || status=$?`, and the annotation set is
+  now capped at what a check run publishes (10 per job): the exit status, up to 4 matched
+  `FAIL:`/`skip:`/`panic:`/`--- FAIL`/`exit status` lines, and the last 2 log lines, each with
+  `%` doubled so a captured packet line cannot forge a workflow command.
+- Verified locally by replaying the extracted step under `bash -e` with a shim `sudo`: a
+  failing script emitted `::error::netns capture exited 3` plus the matched lines and the
+  tail, and the step still exited 3; against the real `run.sh` it emitted the Linux-only skip
+  and `FAIL: LEAK_REQUIRE_NETNS=1 forbids skipping…` and exited 1.
+- web-client job: `Install` passed, **`Typecheck` failed** with `Cannot find name 'node:fs'`,
+  `Cannot find name 'node:url'`, and a knock-on implicit-`any` parameter. Root cause: the
+  annotations say so plainly — `@types/node` was resolved from the repo-root `node_modules`
+  on this machine and `web-client/package.json` never declared it. Added
+  `"@types/node": "^26.6.6"` (types only, no network or crypto code, already a root and
+  extension dependency) and reproduced CI's isolation locally: copied `web-client/` to a
+  directory with no parent `node_modules`, ran `npm ci --ignore-scripts`, then typecheck
+  (`exit=0`), `npm test` (`Test Files 6 passed (6)`, `Tests 45 passed (45)`), and
+  `npm run build` (`✓ built in 557ms`).
+- AC2 is still unproven. The next run must show the capture step's real diagnosis.

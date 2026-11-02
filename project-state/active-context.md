@@ -158,19 +158,23 @@ of which exists here.
 Nothing may be described as hosted or usable until the image, streaming adapter, Terraform,
 and staging deploy run against a user-provided cluster, domain, IdP, and credentials.
 
-The first GitHub CI run started with the 2026-11-01 push and is what executes `go test -race`
-and the typecheck/lint steps; run 1 failed to parse (a `hashFiles()` condition at job level,
-since fixed), run 2 passed hygiene, extension, companion and session and failed only the
-leak job, whose logs are behind a sign-in the CLI does not have. The root cause is therefore
-UNCONFIRMED: `go` is not on sudo's `secure_path`, which fits the 51-second failure, so the
-leak job now names its stages, passes `PATH` through `sudo`, and mirrors the capture log tail
-into `::error::` annotations, which are readable without a sign-in. The Go test binary is now
-compiled in an unprivileged step and handed to the netns stage through `LEAK_TUNNEL_TEST`, so
-no compilation happens as root; that eliminates the cold-build/PATH class of failure whatever
-caused it. The netns stage sets `LEAK_REQUIRE_NETNS=1`, which converts its usual "skip" exit
-into a failure so AC2 can never be reported green without a real capture. The next run either
-passes or names the stage that fails.
+GitHub CI is now the observable referee; run 3 (`ef95070`, run 41501157369, 2026-11-02) passed
+hygiene, extension, companion and session and failed exactly two jobs, each named to the step:
 
-The CI rework, the `web-client` job, and the whole `web-client/` directory are committed but
-**not pushed** (`7ed7291`, `7968b06` and the web-client commit are local). Pushing needs the
-user's approval, so none of the CI diagnostics above have actually executed on GitHub yet.
+- **leak**: the unprivileged `Build tunnel test binary` step and `Ensure capture tools` both
+  succeeded, and `Network-namespace WireGuard capture` failed. The cold-build-as-root theory
+  is eliminated as the sole cause; the diagnosis is inside the privileged step. My own
+  annotation pipeline never ran because the runner executes `run:` with `bash -e` and the
+  failing `sudo` line aborted the step, which is why only `Process completed with exit code 1`
+  was visible. Fixed with `|| status=$?` plus a bounded annotation set (exit status, up to 4
+  matched diagnostic lines, last 2 log lines, `%` doubled). The next run will show why.
+- **web-client**: typecheck failed because `@types/node` was hoisted from the repo-root
+  `node_modules` locally and never declared in `web-client/package.json`. Added it and
+  reproduced CI's isolation in a directory with no parent `node_modules`: typecheck clean, 45
+  tests pass, build succeeds.
+
+AC2 is still unproven and nothing may be claimed about the tunnel invariant until the capture
+step goes green. Job logs still need a sign-in; annotations do not.
+
+All of it is pushed: the user asked to run the leak job on GitHub, which required pushing, and
+`d726ee9..ef95070` went to `main` as a fast-forward. Future pushes still need approval.

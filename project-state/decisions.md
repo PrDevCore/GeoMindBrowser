@@ -109,3 +109,14 @@ records session-level choices and their reasons.
 - The launcher stays a local proof. Nothing is hosted: the identity provider (step 4) and the
   streaming provider (step 5) do not exist, so `web-client` currently runs only against
   `sessiond` in fake-runtime mode.
+
+## 2026-11-02 (CI run 3 observations)
+
+- Pushed `d726ee9..ef95070` to `main` because the user asked to run the leak job on GitHub and
+  a push is the only way to reach it. That was authorization for this push, not a standing one.
+- Declared `@types/node` in `web-client` rather than relying on it being hoisted from the repo
+  root: CI installs only `web-client`'s own dependencies, so its typecheck saw `Cannot find
+  name 'node:fs'`. Types only; no new runtime, network, or crypto dependency.
+- Chose to fix the annotation pipeline instead of concluding the leak job's cause. The step
+  aborted under the runner's `bash -e` before emitting anything, so the run proved the
+  *diagnostic* was broken, not what fails inside the namespace.
