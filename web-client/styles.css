@@ -1,0 +1,30 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 2rem auto;
+  max-width: 42rem;
+  padding: 0 1rem;
+  line-height: 1.5;
+}
+
+.controls {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 1.5rem;
+}
+
+.controls label {
+  font-weight: 600;
+}
+
+.controls input {
+  padding: 0.4rem;
+  font: inherit;
+}
+
+#open {
+  font-weight: 600;
+}

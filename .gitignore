@@ -6,6 +6,7 @@
 # Node
 node_modules/
 extension/dist/
+web-client/dist/
 extension/*.zip
 coverage/
 test-results/

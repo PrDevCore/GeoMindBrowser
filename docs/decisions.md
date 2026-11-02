@@ -466,3 +466,57 @@ Status values: proposed, accepted, superseded.
   (`extension/test/unit/geolocation.test.ts`), manifest permission assertion, and a Playwright
   test that reads the setting back in Chromium (`block` for the routed host, `ask` for a
   direct host) plus the options-page status line.
+
+## ADR-0020: Mode B launcher as a static web client
+
+- Date: 2026-11-02
+- Status: accepted (user decisions, 2026-11-02: "Mode B streamed session as a web app" and
+  "TypeScript + Vite, no framework", then "fix all" for the outstanding CI, end-to-end, and
+  documentation work, which includes the `docs/threat-model.md` section 6 wording below).
+- Context: The user asked to "build the browser as a web app". Mode B already renders inside
+  an ephemeral container and streams pixels, so the only part that can be a web app is the
+  session launcher: pick a region, obtain a session, open the stream. Building a WebRTC
+  pixel client here would mean custom media-stack code that ADR-0016 assigns to KasmVNC, and
+  it cannot be tested without an exit node. `docs/plans/phase-2-web-client.md` was written
+  and approved before implementation, per `.qoder/rules/01-workflow.md`.
+- Decision:
+  - `web-client/` is a static, framework-free TypeScript + Vite app. It talks only to the
+    documented `/v1` control-plane contract (`POST`/`GET`/`DELETE /v1/sessions`, `/healthz`)
+    and never touches a session container directly.
+  - It is a launcher, not a viewer. The stream opens in a new tab through a single
+    `https`-only anchor with `rel="noreferrer noopener"` and `referrerpolicy="no-referrer"`.
+    KasmVNC owns DTLS, codecs, and input; no custom media code ships here.
+  - The bearer token is typed by the user, held in a module closure for the page lifetime,
+    cleared from the field after read, and never written to a URL, storage, or console.
+    Requests use `credentials: "omit"`, `cache: "no-store"`, and `no-referrer`.
+  - Fail closed maps to lifecycle: an unreachable control plane, an illegal state
+    transition, a rejected token, or a provisioning budget overrun ends the session with a
+    plain-language message and no stream link. `pagehide` sends a keepalive `DELETE`; the
+    control-plane TTL reaper is the backstop, not a second client-side retry.
+  - Hosting is same-origin behind a reverse proxy (`/v1`, `/healthz`) so the launcher never
+    holds a cross-origin API base. The CSP meta omits `frame-ancestors`, which is ignored in
+    a meta; the host must send it.
+  - Dependencies are `typescript`, `vite`, and `vitest` only, per the user's stack choice.
+    No lint tool is configured; `npm run lint --if-present` in CI skips cleanly until one is
+    chosen.
+- Why: This is the largest slice of "the browser as a web app" that is honest about the
+  architecture, testable without infrastructure, and adds no new network or crypto code. The
+  alternative (a custom stream client) would be unverifiable here and would duplicate a
+  vetted library.
+- Consequences: The launcher host sees session metadata and the token-bearing request;
+  `docs/threat-model.md` section 6 now records that plus the bearer property of `streamUrl`,
+  and adds launcher-host and stream-URL rows to the Mode B threat table. Nothing is hosted,
+  so "works when deployed" remains unproven; only the fake-runtime control plane was run. The
+  identity provider question from ADR-0016 stays open: `web-client` assumes a token already
+  exists, so real deployment needs the OIDC broker before it.
+- Verification: `npm run typecheck` and 45 vitest cases in `web-client/test/` (state machine,
+  request shape and headers, error mapping, lifecycle including teardown-once and budget
+  timeout, stream-link gating, rendering, and a source scan that forbids `localStorage`,
+  `sessionStorage`, `document.cookie`, `indexedDB`, `console`, and any third-party origin in
+  `src/`). End to end, `npm run test:web` (`tests/browser/webclient.spec.ts`, Playwright,
+  not in CI: it needs Go, a display, and loopback 8080/4173) builds and runs real `sessiond`
+  with `GEOMIND_SESSION_RUNTIME=fake`, serves the built bundle over `vite preview`, and
+  asserts Start → Streaming with an `https://stream.invalid/s/<id>` link → Stop → the control
+  plane returns `404` for that session, a rejected token produces the plain-language failure
+  with no session, and the page leaves no storage, cookies, or token text in the DOM. The CI
+  `web-client` job runs install, typecheck, test, and build.

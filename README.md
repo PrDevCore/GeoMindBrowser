@@ -37,6 +37,28 @@ fail-closed teardown) and is verified with the fake clientset only. No object ha
 to a cluster, and there is no Chromium image, streaming provider, OIDC, or Terraform yet. The
 fake stream URLs are placeholders, and nothing is hosted.
 
+Step 8, approved and implemented 2026-11-02 (ADR-0020), is `web-client/`: a framework-free
+TypeScript + Vite launcher for Mode B. It authenticates to `/v1`, starts one session per
+click, follows the state machine, opens the provider's stream view in a new tab through an
+HTTPS-only noreferrer link, and guarantees teardown on stop, expiry, error, and tab close. It
+holds the bearer token only for the page lifetime and stores nothing. It is a launcher, not a
+pixel client: KasmVNC owns DTLS and codecs, and the real stream view still needs steps 3 to 6.
+
+Run it locally against the fake control plane (a ≥16-character dev token is required):
+
+```sh
+(cd session && GEOMIND_SESSION_RUNTIME=fake \
+  GEOMIND_SESSION_DEV_TOKEN=local-dev-token-00000000 \
+  go run ./cmd/sessiond) &
+npm install                         # repo root, for the Playwright end-to-end
+(cd web-client && npm install && npm run dev) &   # proxies /v1 and /healthz to 127.0.0.1:8080
+(cd web-client && npm test)         # from web-client/
+npm run test:web                    # from the repo root: end-to-end, headful, needs Go
+```
+
+`npm run test:web` builds `sessiond`, spawns it in fake mode, builds and serves the bundle
+with `vite preview`, and drives the whole lifecycle in Chromium; it is not part of CI.
+
 ## Hard rules
 
 Read [AGENTS.md](AGENTS.md) first. The short version:

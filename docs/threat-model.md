@@ -120,6 +120,16 @@ user. This changes which adversary sees what:
   and stronger for IP isolation. This must be stated in user-facing docs; it is the main
   reason to keep both modes.
 - The stream provider sees rendered pixels and input events.
+- The **launcher is hosted infrastructure** (Phase 2 step 8, `web-client/`). Whoever serves
+  it sees that a user started a session, at what time, from what IP, and for what region,
+  and serves the page that receives the bearer token. The launcher itself stores no browsing
+  data: it writes nothing to storage or cookies, keeps the token in a module closure only for
+  the page lifetime, and never places it in a URL (enforced by `web-client/test/privacy.test.ts`).
+  Self-hosting the launcher is the mitigation for users who will not accept that visibility.
+- The **stream URL is bearer-equivalent**. Anyone who can read it can present the session
+  view, so it is treated as a secret: HTTPS only, `referrerpolicy="no-referrer"` and
+  `rel="noreferrer noopener"` on the only anchor that uses it, and never logged by the
+  control plane.
 
 | Threat | Mitigation |
 | --- | --- |
@@ -129,9 +139,12 @@ user. This changes which adversary sees what:
 | Stream interception | DTLS-SRTP via Kasm/Guacamole; TLS to the streaming endpoint; short-lived session tokens |
 | Abuse and resource exhaustion | Rate limits, per-session CPU/memory/egress caps, automatic teardown |
 | Exit operator logging | RAM-only nodes, no persistent storage, published ownership, auditable images |
+| Launcher host observes session metadata | Documented, self-hostable launcher; `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, no telemetry or persistent logs in the launcher; page content never transits it |
+| Stream URL captured or forwarded | HTTPS-only validation, noreferrer anchors, no referrer leakage, revocation on teardown, TTL and idle expiry |
 
 Residual: exit operator can read content; target site sees exit IP; stream provider sees
-pixels; container escape is a high-severity but low-likelihood risk.
+pixels; container escape is a high-severity but low-likelihood risk; the launcher host learns
+that, when, and from where a session was started and holds the token-bearing request path.
 
 ## 7. Failure paths that must fail closed
 

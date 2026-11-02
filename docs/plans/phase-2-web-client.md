@@ -1,7 +1,8 @@
 # Phase 2 addendum: Mode B web client (`web-client/`)
 
-Status: **draft 2026-11-02. Not approved, not implemented.** Implementation starts only
-after this plan and the approval items in section 8 are accepted.
+Status: **accepted and implemented, 2026-11-02.** Approval is recorded in section 8. The
+`web-client` CI job and ADR-0020 exist; nothing here is hosted, so the hosted Mode B claim
+stays open until steps 3, 5, and 6 land.
 
 ## 1. What is being built, and what is not
 
@@ -45,24 +46,32 @@ origin is separate and would need its own `frame-ancestors` allow-list. See appr
 
 ## 3. Files
 
+As built (2026-11-02): teardown did not need its own module — the close/beacon path lives in
+`lifecycle.ts` next to the state it guards, and `stream.ts` is only the link gate, because
+this slice never decodes a stream.
+
 ```
 web-client/
   package.json          name, license Apache-2.0, author Pr Dev Core Tech, dev-only deps
   tsconfig.json         strict, exactOptionalPropertyTypes, same shape as extension/
-  vite.config.ts        dev proxy /v1 -> http://127.0.0.1:8080; build to dist/
+  vite.config.ts        /v1 + /healthz -> http://127.0.0.1:8080 for dev and preview; dist/ build
   index.html            CSP without unsafe-inline; referrer no-referrer
-  src/main.ts           wiring only
+  styles.css
+  src/main.ts           wiring only; pagehide -> unload
   src/api.ts            typed control-plane client; no retry loops, no token storage
   src/session.ts        client-side mirror of the state machine; terminal states are terminal
-  src/stream.ts         open the provider view, watch for loss, drive teardown
-  src/teardown.ts       close/beacon path: DELETE on tab close, idle, error, or click
+  src/lifecycle.ts      start/poll/expire/teardown, teardown-once, plain-language messages
+  src/stream.ts         https-only stream anchor, only while the state is streaming
   src/ui.ts             plain-language status, disabled affordances while provisioning
-  test/*.test.ts        vitest units with fetch stubbed
+  test/*.test.ts        vitest units with fetch stubbed, plus a source-scan privacy suite
+tests/browser/webclient.spec.ts   Playwright end to end against real sessiond (fake runtime)
+playwright.web.config.ts          its config: headful, one worker, not in CI
 ```
 
-No product code outside `web-client/` changes, except the CI job and the docs in section 7.
-`extension/` and `companion/` are untouched, so every Phase 1 invariant keeps its current
-coverage.
+Product code outside `web-client/` is unchanged; only the CI job, the root
+`npm run test:web` script, the Playwright config and spec, and the docs in section 7 were
+added. `extension/` and `companion/` are untouched, so every Phase 1 invariant keeps its
+current coverage.
 
 ## 4. Interfaces
 
@@ -139,18 +148,37 @@ Local run (no cluster): `GEOMIND_SESSION_RUNTIME=fake` plus a dev token
 `/v1`, and the whole lifecycle is clickable against the fake provider. This verifies the
 control path only.
 
+**Run 2026-11-02.** `npm run test:web` built `sessiond` from `session/cmd/sessiond`, spawned
+it with an explicit environment (fake runtime, `de-test`, loopback 8080), built the bundle,
+served it with `vite preview` on 127.0.0.1:4173, and drove it headful: 3 passed. Covered are
+Start → `Streaming` with an `https://stream.invalid/s/<id>` anchor carrying
+`rel="noreferrer noopener"` → Stop → `Stopped: Session closed.` with a follow-up control-plane
+`GET` returning `404`; a rejected token → `Stopped:` with the plain-language message and no
+session; and an empty storage/cookie/DOM state check after load.
+
 CI: one new `web-client` job mirroring `extension` (checkout, `setup-node` with
 `cache-dependency-path: web-client/package-lock.json`, `npm ci --ignore-scripts`, typecheck,
 lint, test). No change to the failing leak job.
 
+**Added 2026-11-02.** The `web-client` job exists and also runs `npm run build`. The
+Playwright end-to-end stays out of CI: it needs Go, a display, and loopback ports. `lint` is
+`--if-present` and currently skips because no linter is configured for this directory yet.
+
 ## 8. Approval items before any of this is written
+
+Recorded 2026-11-02. (a) was answered by the stack question ("TypeScript + Vite, no
+framework"); (b), (c) and (d) were answered by "fix all", which authorized the
+recommendations as written in this plan and in the summary I gave before it.
 
 a. **New dev-only dependencies** in `web-client/`: `vite`, `typescript`, `vitest`. No
    network or crypto code; version pinning and lockfile committed. AGENTS.md requires your
-   sign-off for new dependencies.
+   sign-off for new dependencies. **Approved.**
 b. **Stream presentation**: new tab (recommended for this slice) or embedded iframe, which
-   additionally requires a `frame-ancestors` decision for the stream origin.
+   additionally requires a `frame-ancestors` decision for the stream origin. **New tab**, so
+   no `frame-ancestors` allow-list is needed for the stream origin; the launcher's own host
+   still must send `frame-ancestors 'none'` because the meta tag ignores it.
 c. **`docs/threat-model.md` edit** to record the hosted launcher as an operator-visibility
-   surface and the `streamUrl` bearer property. Required approval per AGENTS.md.
+   surface and the `streamUrl` bearer property. Required approval per AGENTS.md. **Done**,
+   section 6: two new bullets, two new table rows, and the residual line.
 d. **Scope confirmation**: this is the launcher, not a pixel client, and it makes no hosted
-   Mode B claim until steps 3, 5, and 6 exist.
+   Mode B claim until steps 3, 5, and 6 exist. **Confirmed.**

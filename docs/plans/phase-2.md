@@ -200,13 +200,17 @@ Each step ends with tests, lint, and an updated `project-state/progress.md`.
 7. **Client integration and E2E.** Extension entry point, cross-session isolation, teardown
    timing, and leak checks.
 
-### Step 8 (proposed, not approved): Mode B web client
+### Step 8 (approved 2026-11-02, launcher implemented): Mode B web client
 
-`docs/plans/phase-2-web-client.md` (draft 2026-11-02) specifies a launcher and lifecycle web
-app for Mode B — the surface a user needs if "the browser" is to arrive as a web app rather
-than as an extension action. It consumes the existing `/v1` contract, builds no pixel client,
-and makes no hosted claim. Its approval items (deps, iframe vs new tab, threat-model edit) are
-unanswered, so nothing is implemented.
+`docs/plans/phase-2-web-client.md` specifies the launcher and lifecycle web app for Mode B —
+the surface a user needs if "the browser" is to arrive as a web app rather than as an
+extension action. It consumes the existing `/v1` contract, builds no pixel client, and makes
+no hosted claim. The user approved it on 2026-11-02 (stack: TypeScript + Vite, no framework;
+scope and remaining items via "fix all"). `web-client/` is implemented and verified locally
+against `sessiond` in fake-runtime mode — 45 unit tests plus a 3-case Playwright end-to-end —
+and a `web-client` CI job runs install, typecheck, test, and build. Steps 3 through 7 stay
+unimplemented, so nothing here is deployable yet: the identity provider (step 4) and the real
+streaming provider (step 5) are what the launcher still stands on air.
 
 ## 10. Acceptance criteria
 

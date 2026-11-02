@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- frame-ancestors is ignored in a meta CSP; it must also be set on the
+         hosting response. This page is never meant to be framed. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>GeoMind remote session</title>
+  </head>
+  <body>
+    <h1>GeoMind remote session</h1>
+    <p>
+      This page starts one remote browser and shows the pixels your provider streams back.
+      The session's egress is the exit node, not this computer. Page content inside the
+      session is visible to the operator of that infrastructure.
+    </p>
+    <div class="controls">
+      <label for="token">Access token</label>
+      <input id="token" type="password" autocomplete="off" spellcheck="false" />
+      <label for="region">Exit region</label>
+      <input id="region" type="text" value="de-test" autocomplete="off" spellcheck="false" />
+      <button id="start" type="button">Start session</button>
+      <button id="stop" type="button" disabled>Stop now</button>
+    </div>
+    <p id="status">Ready: no session.</p>
+    <p id="session">Session: none</p>
+    <p id="remaining"></p>
+    <p><a id="open" hidden target="_blank" rel="noreferrer noopener">Open session view</a></p>
+    <noscript>This launcher needs JavaScript. Nothing is started without an explicit click.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
