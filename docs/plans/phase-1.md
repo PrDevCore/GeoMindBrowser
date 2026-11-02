@@ -9,7 +9,7 @@ ADR-0014). The independent security review returned **FAIL**; R1 (same-user proc
 over the stale loopback port) was closed as an explicit Phase 1 scope decision (ADR-0015).
 R2, R3, and R5-R8 were fixed 2026-11-01 with tests; R4 was decided the same day (ADR-0019:
 geolocation blocked on routed origins, timezone/language parity accepted for Phase 1).
-Phase 1 is still not complete: AC2 is partially proven. Step 6 needs
+Phase 1 is still not complete. Step 6 needs
 llama.cpp and model approval.
 Verification is recorded in `project-state/progress.md`.
 
