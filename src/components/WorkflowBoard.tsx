@@ -5,16 +5,12 @@ import { useStoredList } from '../lib/store';
 import { formatDate, initialsOf } from '../lib/format';
 import {
   Kanban, Plus, Search, CloudUpload, CloudOff, CheckCircle2,
-  Sparkles, Trash2, X
+  Trash2, X
 } from 'lucide-react';
-
-interface WorkflowBoardProps {
-  onOpenAiTaskGenerator: () => void;
-}
 
 const isoInDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 
-export const WorkflowBoard: React.FC<WorkflowBoardProps> = ({ onOpenAiTaskGenerator }) => {
+export const WorkflowBoard: React.FC = () => {
   const { items: tasks, update: saveTasks, saveState, error } = useStoredList<TaskItem>('tasks', SEED_TASKS);
 
   const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -126,14 +122,6 @@ export const WorkflowBoard: React.FC<WorkflowBoardProps> = ({ onOpenAiTaskGenera
             <option value="high">High</option>
             <option value="urgent">Urgent</option>
           </select>
-
-          <button
-            onClick={onOpenAiTaskGenerator}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800 text-xs font-semibold hover:bg-brand-100 dark:hover:bg-brand-900 transition-all whitespace-nowrap"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Task Planner</span>
-          </button>
 
           <button
             onClick={() => setShowNewTaskModal(true)}

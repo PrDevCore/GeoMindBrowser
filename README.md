@@ -1,31 +1,23 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# GeoMind Browser & Team Workspace
 
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/0af9f7f8-e92f-4630-adc1-f1428093c6ae
+React workspace demo: an embedded browser panel, sprint board, shared documents and team chat
+backed by a local Express server.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
-2. Copy `.env.example` to `.env` and set `GEMINI_API_KEY` to your Gemini API key
-3. Run the app:
+2. Run the app:
    `npm run dev`
 
-Without a key the server still runs; the AI copilot returns a 503 until one is added.
-Set `GEMINI_MODEL` in `.env` to override the default model (`gemini-3.8-flash`).
+Optional: copy `.env.example` to `.env` to set `PORT` (defaults to 3000).
 
 ## Checks
 
 - `npm run lint` - typecheck with `tsc --noEmit`
-- `npm test` - `node:test` suite over the store and AI proxy routes (`server/app.test.ts`)
+- `npm test` - `node:test` suite over the store routes (`server/app.test.ts`)
 - `npm run build` - production bundle in `dist/`
 
 ## Data, persistence and what is simulated

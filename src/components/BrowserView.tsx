@@ -3,7 +3,7 @@ import { BrowserTab, VpnLocation } from '../types';
 import { PRESET_SITES, SEARCH_ENGINES, SEED_TABS } from '../data/seed';
 import { 
   Globe, ShieldCheck, ShieldAlert, ArrowLeft, ArrowRight, RotateCw, Plus, X, 
-  Lock, Bookmark, ExternalLink, Sparkles, AlertTriangle, ChevronDown
+  Lock, Bookmark, ExternalLink, AlertTriangle, ChevronDown
 } from 'lucide-react';
 
 interface BrowserViewProps {
@@ -12,7 +12,6 @@ interface BrowserViewProps {
   vpnLocations: VpnLocation[];
   activeVpnLocation: VpnLocation;
   setActiveVpnLocation: (loc: VpnLocation) => void;
-  onOpenAiSummary: (url: string, title: string) => void;
 }
 
 export const BrowserView: React.FC<BrowserViewProps> = ({
@@ -21,7 +20,6 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
   vpnLocations,
   activeVpnLocation,
   setActiveVpnLocation,
-  onOpenAiSummary,
 }) => {
   const [tabs, setTabs] = useState<BrowserTab[]>(SEED_TABS);
   const [activeTabId, setActiveTabId] = useState<string>(SEED_TABS[0].id);
@@ -316,14 +314,6 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
             title="Open in a real browser tab"
           >
             <ExternalLink className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => onOpenAiSummary(activeTab.url, activeTab.title)}
-            className="p-2 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-sm hover:bg-brand-500 transition-all"
-            title="AI Summarize Page"
-          >
-            <Sparkles className="w-4 h-4 animate-pulse" />
           </button>
         </div>
       </div>

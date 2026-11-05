@@ -1,6 +1,6 @@
 {
   "name": "GeoMind Browser & Team Workspace",
-  "description": "Browser, sprint board, shared documents and team chat backed by server-side persistence, with a simulated VPN console and an optional Gemini AI copilot.",
+  "description": "Browser, sprint board, shared documents and team chat backed by server-side persistence, with a simulated VPN console.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

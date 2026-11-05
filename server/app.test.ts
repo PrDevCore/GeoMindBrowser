@@ -5,37 +5,32 @@ import type { AddressInfo } from "node:net";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createApp, type GenerateContent } from "./app";
+import { createApp } from "./app";
 import { SEEDS } from "./store";
 
 interface TestApp {
+  origin: string;
   storePath: string;
   get: (collection: string) => Promise<Response>;
   put: (collection: string, body: unknown) => Promise<Response>;
-  postAi: (body: unknown) => Promise<Response>;
   close: () => void;
 }
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "geomind-store-"));
 const removeDir = (dir: string) => fs.rmSync(dir, { recursive: true, force: true });
 
-const startApp = async (dir: string, generate: GenerateContent | null = null): Promise<TestApp> => {
+const startApp = async (dir: string): Promise<TestApp> => {
   const storePath = path.join(dir, "data", "store.json");
-  const server = createServer(createApp({ storePath, generate }));
+  const server = createServer(createApp({ storePath }));
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return {
+    origin,
     storePath,
     get: collection => fetch(`${origin}/api/store/${collection}`),
     put: (collection, body) =>
       fetch(`${origin}/api/store/${collection}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-    postAi: body =>
-      fetch(`${origin}/api/gemini/generate`, {
-        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }),
@@ -123,33 +118,18 @@ test("rejects bodies that are not an array of objects", async () => {
   }
 });
 
-test("AI endpoint is 503 when unconfigured and proxies when configured", async () => {
+test("no Gemini endpoint is served", async () => {
   const dir = makeTempDir();
+  const app = await startApp(dir);
   try {
-    const offline = await startApp(dir);
-    try {
-      assert.equal((await offline.postAi({ prompt: "hello" })).status, 503);
-    } finally {
-      offline.close();
-    }
-
-    const calls: Array<{ prompt: string; systemInstruction: string }> = [];
-    const online = await startApp(dir, async (prompt, systemInstruction) => {
-      calls.push({ prompt, systemInstruction });
-      return `echo: ${prompt}`;
+    const res = await fetch(`${app.origin}/api/gemini/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "hello" }),
     });
-    try {
-      assert.equal((await online.postAi({})).status, 400);
-
-      const res = await online.postAi({ prompt: "summarise this" });
-      assert.equal(res.status, 200);
-      assert.deepEqual(await res.json(), { text: "echo: summarise this" });
-      assert.equal(calls.length, 1);
-      assert.match(calls[0].systemInstruction, /expert remote team workflow advisor/);
-    } finally {
-      online.close();
-    }
+    assert.equal(res.status, 404);
   } finally {
+    app.close();
     removeDir(dir);
   }
 });

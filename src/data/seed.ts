@@ -61,8 +61,7 @@ export const SEED_DOCS: DocItem[] = [
     content: `# GeoMind Demo Scope & Simulation Notes
 
 ## 1. What this build actually does
-Persists tasks, documents and chat messages to a JSON store on the local server,
-and proxies AI requests to the Gemini API.
+Persists tasks, documents and chat messages to a JSON store on the local server.
 
 ## 2. What is simulated
 - The VPN Suite is a UI mock-up. No tunnel is created, no traffic is routed or encrypted.

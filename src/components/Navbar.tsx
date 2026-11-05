@@ -1,6 +1,6 @@
 import React from 'react';
 import { TabType } from '../types';
-import { Globe, Kanban, FileText, Users, ShieldCheck, Sun, Moon, Sparkles, Palette } from 'lucide-react';
+import { Globe, Kanban, FileText, Users, ShieldCheck, Sun, Moon, Palette } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: TabType;
@@ -9,7 +9,6 @@ interface NavbarProps {
   setIsDarkMode: (dark: boolean) => void;
   vpnEnabled: boolean;
   activeVpnCity: string;
-  onOpenAiModal: () => void;
   onOpenThemeModal: () => void;
 }
 
@@ -20,7 +19,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   setIsDarkMode,
   vpnEnabled,
   activeVpnCity,
-  onOpenAiModal,
   onOpenThemeModal,
 }) => {
   return (
@@ -102,14 +100,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Zone 3: Primary Action & Controls */}
       <div className="flex items-center gap-2.5 shrink-0">
-        <button
-          onClick={onOpenAiModal}
-          className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-sm shadow-brand-500/25 transition-all whitespace-nowrap"
-        >
-          <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-          <span>AI Copilot</span>
-        </button>
-
         <button
           onClick={onOpenThemeModal}
           aria-label="Customize Theme & Accent"

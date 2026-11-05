@@ -8,7 +8,6 @@ import { WorkflowBoard } from './components/WorkflowBoard';
 import { CollaborativeDocs } from './components/CollaborativeDocs';
 import { TeamHub } from './components/TeamHub';
 import { VpnHub } from './components/VpnHub';
-import { AiAssistantModal } from './components/AiAssistantModal';
 import { ThemeCustomizer } from './components/ThemeCustomizer';
 
 export default function App() {
@@ -22,10 +21,6 @@ export default function App() {
   const [accentColor, setAccentColor] = useState<string>(storedTheme.accentColor);
   const [bgTheme, setBgTheme] = useState<string>(storedTheme.bgTheme);
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
-
-  const [aiModalOpen, setAiModalOpen] = useState<boolean>(false);
-  const [aiInitialPrompt, setAiInitialPrompt] = useState<string>('');
-  const [aiModalTitle, setAiModalTitle] = useState<string>('GeoMind AI Copilot & Security Advisor');
 
   useEffect(() => {
     applyAccentPalette(accentColor);
@@ -54,24 +49,6 @@ export default function App() {
     }
   };
 
-  const handleOpenAiSummary = (url: string, title: string) => {
-    setAiModalTitle(`AI Page Summary: ${title}`);
-    setAiInitialPrompt(`Summarize the public webpage at ${url} ("${title}") for a remote engineering team.`);
-    setAiModalOpen(true);
-  };
-
-  const handleOpenAiTaskGenerator = () => {
-    setAiModalTitle('AI Sprint Task Planner');
-    setAiInitialPrompt('Suggest 2 remote workflow tasks for a security-focused engineering team, each with a title, description and priority.');
-    setAiModalOpen(true);
-  };
-
-  const handleOpenAiDocImprover = (content: string) => {
-    setAiModalTitle('AI Specification Refinement');
-    setAiInitialPrompt(`Review and enhance this team document:\n\n${content.substring(0, 300)}...`);
-    setAiModalOpen(true);
-  };
-
   return (
     <div className={`min-h-screen ${getBgClass()} font-sans transition-colors`}>
       <Navbar
@@ -85,11 +62,6 @@ export default function App() {
         }}
         vpnEnabled={vpnEnabled}
         activeVpnCity={activeVpnLocation.city}
-        onOpenAiModal={() => {
-          setAiModalTitle('GeoMind AI Enterprise Copilot');
-          setAiInitialPrompt('How can I help you with browsing, documents or workflows today?');
-          setAiModalOpen(true);
-        }}
         onOpenThemeModal={() => setThemeModalOpen(true)}
       />
 
@@ -101,19 +73,12 @@ export default function App() {
             vpnLocations={VPN_LOCATIONS}
             activeVpnLocation={activeVpnLocation}
             setActiveVpnLocation={setActiveVpnLocation}
-            onOpenAiSummary={handleOpenAiSummary}
           />
         )}
 
-        {activeTab === 'workflow' && (
-          <WorkflowBoard onOpenAiTaskGenerator={handleOpenAiTaskGenerator} />
-        )}
+        {activeTab === 'workflow' && <WorkflowBoard />}
 
-        {activeTab === 'docs' && (
-          <CollaborativeDocs
-            onOpenAiDocImprover={handleOpenAiDocImprover}
-          />
-        )}
+        {activeTab === 'docs' && <CollaborativeDocs />}
 
         {activeTab === 'team' && (
           <TeamHub activeVpnLocation={activeVpnLocation} />
@@ -129,13 +94,6 @@ export default function App() {
           />
         )}
       </main>
-
-      <AiAssistantModal
-        isOpen={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
-        initialPrompt={aiInitialPrompt}
-        modalTitle={aiModalTitle}
-      />
 
       <ThemeCustomizer
         isOpen={themeModalOpen}

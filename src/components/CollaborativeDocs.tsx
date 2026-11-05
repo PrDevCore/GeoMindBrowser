@@ -3,15 +3,9 @@ import { DocItem } from '../types';
 import { CURRENT_USER, SEED_DOCS } from '../data/seed';
 import { useStoredList } from '../lib/store';
 import { formatRelativeTime } from '../lib/format';
-import { FileText, Plus, Sparkles, Save, Check, AlertCircle, Database } from 'lucide-react';
+import { FileText, Plus, Save, Check, AlertCircle, Database } from 'lucide-react';
 
-interface CollaborativeDocsProps {
-  onOpenAiDocImprover: (content: string) => void;
-}
-
-export const CollaborativeDocs: React.FC<CollaborativeDocsProps> = ({
-  onOpenAiDocImprover,
-}) => {
+export const CollaborativeDocs: React.FC = () => {
   const { items: docs, update: saveDocs, flush, saveState, error } = useStoredList<DocItem>('docs', SEED_DOCS);
 
   const [activeDocId, setActiveDocId] = useState<string>(SEED_DOCS[0].id);
@@ -109,14 +103,6 @@ export const CollaborativeDocs: React.FC<CollaborativeDocsProps> = ({
           />
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => onOpenAiDocImprover(activeDoc.content)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-600 text-white text-xs font-semibold hover:bg-brand-500 shadow-sm transition-all"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Improve Spec</span>
-            </button>
-
             <button
               onClick={handleSave}
               disabled={saveState === 'saving'}
