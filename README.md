@@ -59,6 +59,15 @@ npm run test:web                    # from the repo root: end-to-end, headful, n
 `npm run test:web` builds `sessiond`, spawns it in fake mode, builds and serves the bundle
 with `vite preview`, and drives the whole lifecycle in Chromium; it is not part of CI.
 
+## workspace-demo/
+
+`workspace-demo/` is a React + Express mock of a team workspace - browser panel, sprint board,
+shared documents, team chat and a VPN console - imported 2026-11-04 under
+[ADR-0021](docs/decisions.md). It is a design reference, not a client: nothing routes traffic,
+the VPN console and its metrics are simulated, there is no AI feature, and no CI job builds it.
+Run `npm install && npm run dev` inside that directory; `npm run typecheck`, `npm test` and
+`npm run build` are the checks it is expected to keep passing.
+
 ## Hard rules
 
 Read [AGENTS.md](AGENTS.md) first. The short version:
@@ -77,6 +86,7 @@ Read [AGENTS.md](AGENTS.md) first. The short version:
 | --- | --- |
 | `extension/` | MV3 extension: service worker, side panel, policy client |
 | `companion/` | Go native companion: policy, SOCKS5 proxy, WireGuard tunnel, AI sidecar |
+| `workspace-demo/` | React + Express workspace mock: simulated VPN console, design reference only |
 | `shared/` | Policy and IPC schemas, cross-language test fixtures |
 | `tests/` | Linux netns leak suite, prompt-injection fixtures, offline AI test |
 | `docs/` | [Threat model](docs/threat-model.md), [decisions](docs/decisions.md), [Phase 1 plan](docs/plans/phase-1.md) |

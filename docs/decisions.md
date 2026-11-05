@@ -520,3 +520,47 @@ Status values: proposed, accepted, superseded.
   plane returns `404` for that session, a rejected token produces the plain-language failure
   with no session, and the page leaves no storage, cookies, or token text in the DOM. The CI
   `web-client` job runs install, typecheck, test, and build.
+
+## ADR-0021: Import the team-workspace mock as workspace-demo
+
+- Date: 2026-11-04
+- Status: accepted (the user supplied `https://github.com/PrDevCore/GeoMindBrowser.git` with
+  "COMMIT" and chose "branch in GeoMindBrowser" over a separate repository).
+- Context: A React + Express mock of a team workspace (browser panel, sprint board, shared
+  documents, team chat, VPN console) existed outside this repository, generated from a Google AI
+  Studio scaffold. It carried a server-side Gemini copilot and UI that claimed encryption,
+  masked IPs and live gateway metrics. Before import those were removed: the copilot, its modal,
+  the four buttons that opened it, the `@google/genai` dependency and every claim of security in
+  the copy are gone, and the simulated panels now label themselves as simulations.
+- Decision:
+  - The app lands as `workspace-demo/`, a self-contained npm package with its own
+    `package.json`, lockfile, tsconfig and Vite config. Nothing in the root package, the
+    extension or `web-client` changes.
+  - It is a design reference, not a shipping component. `workspace-demo/README.md` states that
+    no traffic is routed and no AI exists, and the directory is named `demo` rather than `client`
+    so it cannot be read as a sibling of `web-client/`.
+  - No CI job is added yet. A new job would install React, Vite, Tailwind and esbuild on every
+    run of the shared pipeline before anyone has agreed the mock is worth that time; the local
+    checks below are recorded instead, and wiring CI is left as an explicit follow-up.
+  - The hard constraints hold without editing `docs/threat-model.md`, which needs approval to
+    change: there is no AI code left, so constraints 3 and 5 are out of scope by absence, and
+    constraint 2 holds because only task, document and chat content plus a `localStorage` theme
+    choice are persisted. Browser tab state stays in component state, and nothing is sent
+    anywhere except the same-origin `/api/store` routes.
+- Why: Keeping the mock in the same repository as the product makes the workspace UX reviewable
+  next to the routing rules it would eventually have to obey. The alternative - pushing this
+  history onto the remote's `main` - would have needed a force-push that deletes the existing
+  product history, so it was rejected outright.
+- Consequences: The repository now holds a second, non-default stack (React 19, Vite 8,
+  Express 4, Tailwind 4) alongside the MV3 extension and the framework-free launcher. Promoting
+  any part of it into a real client needs its own ADR and a dependency approval, because the
+  stack defaults in `AGENTS.md` do not cover it. `workspace-demo/data/store.json` is runtime
+  state and is gitignored. The demo server listens on `0.0.0.0`, so it is reachable on the
+  developer's LAN and must stay a local process, not a hosted service.
+- Verification: Run in `workspace-demo/` after the copy: `npm install` (220 packages),
+  `npm run typecheck` (clean), `npm test` (6/6 `node:test` cases: seeding, collection allowlist
+  and traversal rejection, PUT round-trip, restart without reseeding, body validation, and a 404
+  assertion that no `/api/gemini/generate` exists), `npm run build` (282.92 kB JS at 84.01 kB
+  gzip, 37.93 kB CSS). A browser pass over all five tabs of the built bundle reported zero
+  AI/Gemini strings, zero console errors and a store that still loads; it ran on the identical
+  sources immediately before the copy, not inside this checkout.

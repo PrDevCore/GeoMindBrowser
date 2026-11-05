@@ -1,6 +1,6 @@
 # Progress
 
-Updated: 2026-11-01
+Updated: 2026-11-04
 
 ## Phase 1 steps
 
@@ -1013,3 +1013,27 @@ web-client job reported `Cannot find name 'node:fs'`.
 - **What it does not prove:** AC2 also names QUIC, IPv6, and WebRTC at the browser level. The
   tcpdump filter is `ip`, so IPv6 is not captured at all, and this suite never runs a browser.
   Those three need their own netns capture cases before AC2 can be called complete.
+
+## Workspace demo import, 2026-11-04
+
+`workspace-demo/` (ADR-0021) is a React + Express mock of a team workspace, imported from a
+standalone AI Studio scaffold at the user's direction. It arrives as its own npm package; the
+root, `extension/`, `web-client/`, `companion/` and `session/` are untouched.
+
+- **What works:** `npm install` (220 packages), `npm run typecheck` (clean), `npm test` (6/6
+  `node:test` cases over the store routes: seeding, allowlist and traversal rejection, PUT
+  round-trip, restart without reseeding, body validation, and a 404 assertion that no Gemini
+  endpoint exists), `npm run build` (282.92 kB JS at 84.01 kB gzip). Tasks, documents and chat
+  persist to `workspace-demo/data/store.json`; the accent theme persists in `localStorage`.
+- **What is stubbed:** the entire VPN Suite (gateway inventory, ping and load figures, kill
+  switch, leak display) is illustrative UI, the team directory is four sample people, and the
+  browser panel is an iframe of public sites. Nothing routes, encrypts or measures.
+- **What was removed before the copy:** the server-side Gemini copilot, its modal and the four
+  buttons that opened it, the `@google/genai` dependency, and every line of copy that claimed
+  encryption or live telemetry. Constraints 3 and 5 are now satisfied by absence rather than by
+  an implementation.
+- **What is risky:** a second stack that CI never builds, so its checks only run when someone
+  remembers to run them; and a dev server that binds `0.0.0.0`, which is LAN-reachable on a
+  developer machine. Only its directory name and README separate it from the real clients.
+- **Open:** whether to add a `workspace-demo` CI job mirroring `web-client`, and whether any of
+  its surfaces belong in the extension side panel instead of a separate web app.
