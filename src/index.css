@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Brand tokens track the accent chosen in the theme modal; src/data/themes.ts
+   writes the --brand-* values onto the document element at runtime. */
+@theme {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+}
+
+:root {
+  --brand-50: oklch(96.2% 0.018 272.314);
+  --brand-100: oklch(93% 0.034 272.788);
+  --brand-200: oklch(87% 0.065 274.039);
+  --brand-400: oklch(67.3% 0.182 276.935);
+  --brand-500: oklch(58.5% 0.233 277.117);
+  --brand-600: oklch(51.1% 0.262 276.966);
+  --brand-800: oklch(39.8% 0.195 277.366);
+  --brand-900: oklch(35.9% 0.144 278.697);
+  --brand-950: oklch(25.7% 0.09 281.288);
+}
