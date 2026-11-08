@@ -1,6 +1,5 @@
 ﻿import React, { useState } from 'react';
 import { DocItem } from '../types';
-import { DocItem } from '../types';
 import { useStoredList } from '../lib/store';
 import { formatRelativeTime } from '../lib/format';
 import { FileText, Plus, Save, Check, AlertCircle, Database } from 'lucide-react';

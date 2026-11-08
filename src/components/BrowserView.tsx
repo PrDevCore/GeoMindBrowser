@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserTab, VpnLocation } from '../types';
-import { useState, useEffect } from 'react';
 import { 
   Globe, ShieldCheck, ShieldAlert, ArrowLeft, ArrowRight, RotateCw, Plus, X, 
   Lock, Bookmark, ExternalLink, AlertTriangle, ChevronDown
@@ -198,8 +197,8 @@ export const BrowserView: React.FC<BrowserViewProps> = ({ vpnEnabled, setVpnEnab
         <select
           value={selectedSearchEngine}
 
-        {/* URL / Search Input Form Bound to iframe src */}
-        <form onSubmit={handleFormSubmit} className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 focus-within:border-brand-500 transition-all min-w-[200px]">
+        
+        <form onSubmit={handleFormSubmit} className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 focus-within:border-brand-500 transition-all min-w-[200px]" disabled>
           <div className={`flex items-center gap-1.5 ${isHttps ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
             {isHttps ? <Lock className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
             <span className="text-[11px] font-mono font-medium uppercase tracking-wider">
@@ -363,4 +362,4 @@ export const BrowserView: React.FC<BrowserViewProps> = ({ vpnEnabled, setVpnEnab
       </div>
     </div>
   );
-};
+}
