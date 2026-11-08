@@ -1,29 +1,40 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ChatMessage, VpnLocation } from '../types';
-import { CURRENT_USER, SEED_CHAT, SEED_TEAM } from '../data/seed';
 import { useStoredList } from '../lib/store';
 import { formatClockTime, formatRelativeTime } from '../lib/format';
 import { Avatar } from './Avatar';
 import { Users, Send, Database, MessageSquare } from 'lucide-react';
 
+// Hardcoded fallback or proxy user info since backend data isn't referenced globally
+const CURRENT_USER = {
+  displayName: 'Current User',
+  avatarUrl: undefined, // Or a dummy string URL if needed
+};
+
 interface TeamHubProps {
-  activeVpnLocation: VpnLocation;
+  activeVpnLocation: VpnLocation | null;
 }
 
 export const TeamHub: React.FC<TeamHubProps> = ({ activeVpnLocation }) => {
-  const { items: chatMessages, update: saveChat, error } = useStoredList<ChatMessage>('chat', SEED_CHAT);
+  const { items: chatMessages, update: saveChat, error } = useStoredList<ChatMessage>('chat', []);
   const [inputText, setInputText] = useState<string>('');
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
+    // Optional safe-guard string check for the optional chaining/null vpn node structure
+    const currentNodeLabel = activeVpnLocation 
+      ? `${activeVpnLocation.city} (simulated)` 
+      : 'No VPN Gateway Connection';
+
     const newMsg: ChatMessage = {
       id: Date.now().toString(),
       senderName: CURRENT_USER.displayName,
+      senderAvatar: CURRENT_USER.avatarUrl,
       text: inputText.trim(),
       timestamp: Date.now(),
-      vpnNode: `${activeVpnLocation.city} (simulated)`,
+      vpnNode: currentNodeLabel,
     };
 
     saveChat([...chatMessages, newMsg]);
@@ -37,39 +48,13 @@ export const TeamHub: React.FC<TeamHubProps> = ({ activeVpnLocation }) => {
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Team Directory ({SEED_TEAM.length})</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Team Directory</span>
           </div>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Sample roster · presence is not live.</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-          {SEED_TEAM.map(member => (
-            <div
-              key={member.id}
-              className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="relative">
-                  <Avatar name={member.name} src={member.avatar} className="w-9 h-9 text-[11px]" />
-                  <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 ${
-                    member.status === 'online' ? 'bg-emerald-500' :
-                    member.status === 'busy' ? 'bg-amber-500' : 'bg-slate-400'
-                  }`} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">{member.name}</h4>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">{member.role}</p>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span className="truncate max-w-[120px]">{member.currentActivity}</span>
-                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                  {member.vpnLocation}
-                </span>
-              </div>
-            </div>
-          ))}
+          <p className="text-xs text-slate-500 dark:text-slate-400">No directory data available from the backend.</p>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Palette, X, Check } from 'lucide-react';
 
 interface ThemeCustomizerProps {
@@ -43,7 +43,7 @@ export const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
             <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-sm">
               <Palette className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">GeoMind Workspace Theme</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Waypoint Workspace Theme</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
             <X className="w-5 h-5" />
@@ -125,3 +125,4 @@ export const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
     </div>
   );
 };
+

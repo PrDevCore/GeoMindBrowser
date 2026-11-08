@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { TaskItem } from '../types';
-import { SEED_TASKS, SEED_TEAM, CURRENT_USER } from '../data/seed';
 import { useStoredList } from '../lib/store';
 import { formatDate, initialsOf } from '../lib/format';
 import {
@@ -8,10 +7,19 @@ import {
   Trash2, X
 } from 'lucide-react';
 
+// Seed team members for assignee selection
+const SEED_TEAM = [
+  { id: '1', name: 'Alice Johnson', role: 'Remote Lead' },
+  { id: '2', name: 'Bob Wilson', role: 'Senior Developer' },
+  { id: '3', name: 'Carol Smith', role: 'UX Designer' },
+  { id: '4', name: 'David Chen', role: 'QA Engineer' },
+  { id: '5', name: 'Emma Davis', role: 'Product Manager' },
+];
+
 const isoInDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 
 export const WorkflowBoard: React.FC = () => {
-  const { items: tasks, update: saveTasks, saveState, error } = useStoredList<TaskItem>('tasks', SEED_TASKS);
+  const { items: tasks, update: saveTasks, saveState, error } = useStoredList<TaskItem>('tasks', []);
 
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -19,7 +27,7 @@ export const WorkflowBoard: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState<string>('');
   const [newTaskDesc, setNewTaskDesc] = useState<string>('');
   const [newTaskPriority, setNewTaskPriority] = useState<TaskItem['priority']>('medium');
-  const [newTaskAssignee, setNewTaskAssignee] = useState<string>(SEED_TEAM[0].name);
+  const [newTaskAssignee, setNewTaskAssignee] = useState<string>('');
   const [newTaskDueDate, setNewTaskDueDate] = useState<string>(isoInDays(7));
   const [newTaskTags, setNewTaskTags] = useState<string>('');
   const [newTaskVpnRequired, setNewTaskVpnRequired] = useState<boolean>(false);
@@ -39,7 +47,6 @@ export const WorkflowBoard: React.FC = () => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
 
-    const assignee = SEED_TEAM.find(member => member.name === newTaskAssignee);
 
     const newTask: TaskItem = {
       id: Date.now().toString(),
@@ -48,9 +55,9 @@ export const WorkflowBoard: React.FC = () => {
       status: 'backlog',
       priority: newTaskPriority,
       assignee: {
-        name: assignee?.name ?? CURRENT_USER.displayName,
-        avatar: assignee?.avatar,
-        role: assignee?.role ?? CURRENT_USER.role,
+        name: newTaskAssignee,
+        avatar: undefined,
+        role: 'Remote Lead',
       },
       dueDate: newTaskDueDate,
       vpnRequired: newTaskVpnRequired,

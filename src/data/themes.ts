@@ -1,4 +1,4 @@
-export const BRAND_SHADES = [50, 100, 200, 400, 500, 600, 800, 900, 950] as const;
+﻿export const BRAND_SHADES = [50, 100, 200, 400, 500, 600, 800, 900, 950] as const;
 
 export type BrandShade = (typeof BRAND_SHADES)[number];
 
@@ -72,7 +72,7 @@ export const applyAccentPalette = (accent: string) => {
   }
 };
 
-const THEME_STORAGE_KEY = 'geomind.theme';
+const THEME_STORAGE_KEY = 'waypoint.theme';
 const BG_THEMES = ['midnight', 'arctic', 'navy', 'obsidian'];
 const DEFAULT_THEME = { accentColor: 'indigo', bgTheme: 'midnight' };
 
@@ -102,3 +102,4 @@ export const writeStoredTheme = (theme: StoredTheme) => {
     // Private-mode or quota failures only affect persistence, not the running theme.
   }
 };
+

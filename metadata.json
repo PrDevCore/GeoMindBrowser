@@ -1,6 +1,7 @@
-{
-  "name": "GeoMind Browser & Team Workspace",
+﻿{
+  "name": "Waypoint Browser & Team Workspace",
   "description": "Browser, sprint board, shared documents and team chat backed by server-side persistence, with a simulated VPN console.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
+

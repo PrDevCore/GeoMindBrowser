@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { DocItem } from '../types';
-import { CURRENT_USER, SEED_DOCS } from '../data/seed';
+import { DocItem } from '../types';
 import { useStoredList } from '../lib/store';
 import { formatRelativeTime } from '../lib/format';
 import { FileText, Plus, Save, Check, AlertCircle, Database } from 'lucide-react';
 
 export const CollaborativeDocs: React.FC = () => {
-  const { items: docs, update: saveDocs, flush, saveState, error } = useStoredList<DocItem>('docs', SEED_DOCS);
+  const { items: docs, update: saveDocs, flush, saveState, error } = useStoredList<DocItem>('docs', []);
 
-  const [activeDocId, setActiveDocId] = useState<string>(SEED_DOCS[0].id);
+  const [activeDocId, setActiveDocId] = useState<string>('');
 
-  const activeDoc = docs.find(d => d.id === activeDocId) ?? docs[0];
+  const activeDoc = docs.find(d => d.id === activeDocId) ?? null;
 
   const editActiveDoc = (patch: Partial<DocItem>) => {
     saveDocs(docs.map(d =>
       d.id === activeDoc.id
-        ? { ...d, ...patch, lastEditedBy: CURRENT_USER.displayName, updatedAt: Date.now() }
+        ? { ...d, ...patch, lastEditedBy: 'You', updatedAt: Date.now() }
         : d
     ));
   };
@@ -30,7 +30,7 @@ export const CollaborativeDocs: React.FC = () => {
       id: newId,
       title: 'Untitled Spec Document',
       content: `# New Document\n\nStart typing your team notes or project specification here...`,
-      lastEditedBy: CURRENT_USER.displayName,
+      lastEditedBy: 'You',
       updatedAt: Date.now(),
       category: 'General',
     };
@@ -111,7 +111,7 @@ export const CollaborativeDocs: React.FC = () => {
               {saveState === 'saved'
                 ? <Check className="w-3.5 h-3.5 text-emerald-500" />
                 : <Save className="w-3.5 h-3.5" />}
-              <span>{saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : 'Save now'}</span>
+              <span>{saveState === 'saving' ? 'Savingâ€¦' : saveState === 'saved' ? 'Saved' : 'Save now'}</span>
             </button>
           </div>
         </div>
@@ -131,8 +131,8 @@ export const CollaborativeDocs: React.FC = () => {
           <div className="flex items-center gap-2">
             <Database className={`w-3.5 h-3.5 ${saveState === 'error' ? 'text-red-500' : 'text-emerald-500'}`} />
             {saveState === 'error'
-              ? <span>Autosave failed · {error ?? 'server unreachable'} · last edited by {activeDoc.lastEditedBy} {formatRelativeTime(activeDoc.updatedAt)}</span>
-              : <span>Autosaved to data/store.json · last edited by {activeDoc.lastEditedBy} {formatRelativeTime(activeDoc.updatedAt)}</span>}
+              ? <span>Autosave failed Â· {error ?? 'server unreachable'} Â· last edited by {activeDoc.lastEditedBy} {formatRelativeTime(activeDoc.updatedAt)}</span>
+              : <span>Saved to SQLite (data/app.db) Â· last edited by {activeDoc.lastEditedBy} {formatRelativeTime(activeDoc.updatedAt)}</span>}
           </div>
           <div>Markdown Supported</div>
         </div>
@@ -140,3 +140,4 @@ export const CollaborativeDocs: React.FC = () => {
     </div>
   );
 };
+

@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
         <div>
           <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-            GeoMind
+            Waypoint
           </h1>
           <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
             <ShieldCheck className="w-3 h-3 text-slate-400" />

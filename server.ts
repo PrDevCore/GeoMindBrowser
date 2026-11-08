@@ -1,13 +1,17 @@
 import { createServer as createViteServer } from "vite";
 import express from "express";
+import { createServer as createHttpServer } from "http";
 import path from "path";
 import dotenv from "dotenv";
 import { createApp } from "./server/app";
+import { setupWebSocket } from "./server/ws";
 
 dotenv.config();
 
-const STORE_PATH = path.resolve(__dirname, "data", "store.json");
-const app = createApp({ storePath: STORE_PATH });
+const app = createApp();
+const httpServer = createHttpServer(app);
+
+setupWebSocket(httpServer);
 
 async function startServer() {
   const PORT = process.env.PORT || 3000;
@@ -20,14 +24,14 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.resolve(__dirname, "dist")));
-    app.get("*", (_req, res) => {
+    app.get("*", ({ url }: { url: string }, res: express.Response) => {
       res.sendFile(path.resolve(__dirname, "dist", "index.html"));
     });
   }
 
-  app.listen(Number(PORT), "0.0.0.0", () => {
+  httpServer.listen(Number(PORT), "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Store: ${STORE_PATH}`);
+    console.log(`WebSocket at ws://localhost:${PORT}/ws`);
   });
 }
 

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { apiJson } from "./api";
 
-export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+export type SaveState = "idle" | "saving" | "saved" | "error";
 
 const SYNC_DEBOUNCE_MS = 400;
 
@@ -14,26 +15,25 @@ export interface StoredList<T> {
 
 export function useStoredList<T>(collection: string, seed: T[]): StoredList<T> {
   const [items, setItems] = useState<T[]>(seed);
-  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const endpoint = `/api/store/${collection}`;
+  const endpoint = `/api/${collection}`;
   const latest = useRef(items);
   latest.current = items;
-  const localEdit = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(endpoint)
-      .then(res => res.ok ? res.json() : Promise.reject(new Error(`Store read failed (${res.status})`)))
-      .then(data => {
+    (async () => {
+      try {
+        const data = await apiJson(endpoint, "GET");
         if (cancelled) return;
-        if (Array.isArray(data) && !localEdit.current) setItems(data);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
-      });
+        if (Array.isArray(data)) setItems(data);
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || "Failed to load");
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -46,25 +46,20 @@ export function useStoredList<T>(collection: string, seed: T[]): StoredList<T> {
   }, []);
 
   const write = useCallback(async () => {
-    setSaveState('saving');
+    setSaveState("saving");
     try {
-      const res = await fetch(endpoint, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(latest.current),
-      });
-      if (!res.ok) throw new Error(`Store write failed (${res.status})`);
-      setSaveState('saved');
+      await apiJson(endpoint, "PUT", latest.current);
+      setSaveState("saved");
       setError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save';
-      setSaveState('error');
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : "Failed to save";
+      setSaveState("error");
       setError(message);
     }
   }, [endpoint]);
 
   const update = useCallback((next: T[]) => {
-    localEdit.current = true;
+    latest.current = next;
     setItems(next);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(write, SYNC_DEBOUNCE_MS);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserTab, VpnLocation } from '../types';
-import { PRESET_SITES, SEARCH_ENGINES, SEED_TABS } from '../data/seed';
+import { useState, useEffect } from 'react';
 import { 
   Globe, ShieldCheck, ShieldAlert, ArrowLeft, ArrowRight, RotateCw, Plus, X, 
   Lock, Bookmark, ExternalLink, AlertTriangle, ChevronDown
@@ -9,26 +9,16 @@ import {
 interface BrowserViewProps {
   vpnEnabled: boolean;
   setVpnEnabled: (enabled: boolean) => void;
-  vpnLocations: VpnLocation[];
-  activeVpnLocation: VpnLocation;
-  setActiveVpnLocation: (loc: VpnLocation) => void;
 }
 
-export const BrowserView: React.FC<BrowserViewProps> = ({
-  vpnEnabled,
-  setVpnEnabled,
-  vpnLocations,
-  activeVpnLocation,
-  setActiveVpnLocation,
-}) => {
-  const [tabs, setTabs] = useState<BrowserTab[]>(SEED_TABS);
-  const [activeTabId, setActiveTabId] = useState<string>(SEED_TABS[0].id);
-  const [urlInput, setUrlInput] = useState<string>('https://example.com');
-  const [selectedSearchEngine, setSelectedSearchEngine] = useState<string>(SEARCH_ENGINES[0].queryUrl);
+export const BrowserView: React.FC<BrowserViewProps> = ({ vpnEnabled, setVpnEnabled }) => {
+  const [tabs, setTabs] = useState<BrowserTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState<string>('');
   const [showBookmarks, setShowBookmarks] = useState<boolean>(false);
   const [showVpnDropdown, setShowVpnDropdown] = useState<boolean>(false);
 
-  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+  const activeTab = tabs.find(t => t.id === activeTabId) ?? tabs[0];
   const isHttps = activeTab.url.startsWith('https://');
 
   useEffect(() => {
@@ -79,15 +69,14 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
                   targetUrl.includes('.') && !targetUrl.includes(' ');
 
     if (!isUrl) {
-      // It's a search query
-      targetUrl = selectedSearchEngine + encodeURIComponent(targetUrl);
+      // It's a search query -> DuckDuckGo
+      targetUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(targetUrl)}`;
     } else if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
       targetUrl = 'https://' + targetUrl;
     }
 
-    const preset = PRESET_SITES.find(p => p.url === targetUrl);
     const domain = targetUrl.includes('search?q=') ? 'Search Result' : targetUrl.replace('https://', '').replace('http://', '').split('/')[0];
-    const title = preset ? preset.title : domain;
+    const title = domain;
 
     setTabs(tabs.map(t => {
       if (t.id === activeTabId) {
@@ -172,8 +161,7 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
               if (activeTab.historyIndex > 0) {
                 const newIdx = activeTab.historyIndex - 1;
                 const targetUrl = activeTab.history[newIdx];
-                const preset = PRESET_SITES.find(p => p.url === targetUrl);
-                const title = preset ? preset.title : targetUrl.replace('https://', '').split('/')[0];
+                const title = targetUrl.replace('https://', '').split('/')[0];
                 setTabs(tabs.map(t => t.id === activeTabId ? { ...t, historyIndex: newIdx, url: targetUrl, title } : t));
                 setUrlInput(targetUrl);
               }
@@ -188,8 +176,7 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
               if (activeTab.historyIndex < activeTab.history.length - 1) {
                 const newIdx = activeTab.historyIndex + 1;
                 const targetUrl = activeTab.history[newIdx];
-                const preset = PRESET_SITES.find(p => p.url === targetUrl);
-                const title = preset ? preset.title : targetUrl.replace('https://', '').split('/')[0];
+                const title = targetUrl.replace('https://', '').split('/')[0];
                 setTabs(tabs.map(t => t.id === activeTabId ? { ...t, historyIndex: newIdx, url: targetUrl, title } : t));
                 setUrlInput(targetUrl);
               }
@@ -210,14 +197,6 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
         {/* Search Engine Selector */}
         <select
           value={selectedSearchEngine}
-          onChange={(e) => setSelectedSearchEngine(e.target.value)}
-          className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-medium focus:outline-none cursor-pointer"
-          title="Select Search Engine"
-        >
-          {SEARCH_ENGINES.map((engine, idx) => (
-            <option key={idx} value={engine.queryUrl}>{engine.name}</option>
-          ))}
-        </select>
 
         {/* URL / Search Input Form Bound to iframe src */}
         <form onSubmit={handleFormSubmit} className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 focus-within:border-brand-500 transition-all min-w-[200px]">
@@ -323,18 +302,18 @@ export const BrowserView: React.FC<BrowserViewProps> = ({
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 shadow-md animate-fadeIn">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Sample bookmarks
+              Bookmarks
             </h3>
             <button onClick={() => setShowBookmarks(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
               <X className="w-4 h-4" />
             </button>
           </div>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">
-            These are public example pages. Sites that send X-Frame-Options or CSP frame-ancestors headers render blank inside this demo frame — use the
-            external-link button to open them properly.
+            No bookmarks are available from the real backend yet.
           </p>
-          <div className="grid grid-cols-2 gap-2.5">
-            {PRESET_SITES.map((preset, idx) => (
+          <div className="flex items-center justify-center py-6 text-[10px] text-slate-400">
+            No saved bookmarks
+          </div>
               <button
                 key={idx}
                 onClick={() => {
